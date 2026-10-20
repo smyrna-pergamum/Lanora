@@ -213,7 +213,7 @@ Windows ICO in `src/Lanora/Assets/`. The EXE, tray, favicon and interface brand
 share the same asset. The core scanning engine is unchanged.
 
 See [Windows distribution](packaging/README.md) and
-[Türkçe kurulum ve GitHub rehberi](KURULUM-VE-GITHUB-TR.md).
+[Setup and GitHub guide](SETUP-AND-GITHUB.md).
 Run `packaging/Build-Windows.ps1` on Windows to create an installer and portable
 ZIP. The manual GitHub workflow builds unsigned artifacts; it does not publish
 a release. The source-only distribution excludes old binaries and local data.
