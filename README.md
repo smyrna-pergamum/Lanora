@@ -202,7 +202,9 @@ Automated tests in `tests/Lanora.Tests` cover:
 
 ## Licenses
 
-See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+LANORA is licensed under the [GNU General Public License v3.0](LICENSE).
+
+See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for third-party components.
 
 ## Icon and distribution preparation
 
