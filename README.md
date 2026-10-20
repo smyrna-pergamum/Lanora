@@ -1,23 +1,81 @@
-# LANORA  **L**ocal **A**rea **N**etwork **O**bservation \& **R**isk **A**ssessment (1.2.0)
+<p align="center">
+  <img src="src/Lanora/Assets/Lanora.png" width="112" alt="LANORA icon">
+</p>
 
-| Letter | Stands for |
-| --- | --- |
-| **L** | Local |
-| **A** | Area |
-| **N** | Network |
-| **O** | Observation |
-| **R** | Risk |
-| **A** | Assessment |
+<h1 align="center">LANORA</h1>
 
-**Purpose:** LANORA does **device discovery**, **port scanning** and **risk assessment**. It is a local Windows application, used from the browser, that looks at the devices and open ports on home and small-office networks and explains the risks in plain language.
+<p align="center">
+  <b>L</b>ocal <b>A</b>rea <b>N</b>etwork <b>O</b>bservation &amp; <b>R</b>isk <b>A</b>ssessment<br>
+  Know every device on your network. Understand the risk.
+</p>
 
-It was built to the technical specification's **MVP** scope and the "Network Security Interface" design. Version **1.1** added an **advanced scan** that needs no installation (UDP, traceroute, device names, external/hostname targets).
+<p align="center">
+  <a href="https://github.com/smyrna-pergamum/Lanora/releases/latest"><img src="https://img.shields.io/github/v/release/smyrna-pergamum/Lanora?color=2D7659&label=release" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/smyrna-pergamum/Lanora?color=2D7659" alt="License: GPL-3.0"></a>
+  <img src="https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-173C33" alt="Platform: Windows 10/11 x64">
+  <a href="https://github.com/smyrna-pergamum/Lanora/releases"><img src="https://img.shields.io/github/downloads/smyrna-pergamum/Lanora/total?color=2D7659" alt="Downloads"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/smyrna-pergamum/Lanora/releases/latest"><b>⬇ Download for Windows</b></a>
+  &nbsp;·&nbsp; <a href="#features">Features</a>
+  &nbsp;·&nbsp; <a href="#quick-start">Quick start</a>
+  &nbsp;·&nbsp; <a href="#privacy">Privacy</a>
+</p>
+
+![LANORA overview: network security indicator, connection view and device list](docs/screenshot-overview.png)
+
+LANORA is a free, open-source network scanner for home and small-office Windows users. It finds the devices on your network, checks which ports they have open and explains the risks in plain language, all on your own computer.
+
+## Features
+
+- **Device discovery:** ICMP, the ARP neighbor table and limited TCP evidence, with offline vendor lookup (IEEE OUI).
+- **Port and service scanning:** Quick, Standard and Custom profiles, with HTTP, TLS and banner evidence for open ports.
+- **Network security indicator:** a 0–100 score with every finding explained in four parts: what was observed, what it means, what to do and how to verify it.
+- **Network map, scan history and comparison** to follow changes over time.
+- **Advanced scan**, built in with nothing extra to install:
+    - hostname and external targets (only after you confirm you are authorized)
+    - native UDP service probes (DNS, NTP, SNMP, SSDP, mDNS and more)
+    - traceroute, device names via reverse DNS and operating system estimates
+    - safe service checks (`http-title`, TLS versions, SSH banner, anonymous FTP), detection only
+- **PDF and Excel reports.**
+- **English, Turkish and German** interface, reports and guide.
+
+## Quick start
+
+1. Download `Lanora-1.2.0-Setup-x64.exe` (installer) or `Lanora-1.2.0-Portable-x64.zip` (no installation) from the [latest release](https://github.com/smyrna-pergamum/Lanora/releases/latest).
+2. Run it. The installer installs for the current user only and needs no administrator rights or .NET runtime.
+3. LANORA sits in the system tray and opens its interface in your default browser. Click **New scan**.
+
+> **Unsigned build:** the current release is not code-signed yet, so Windows SmartScreen may warn about an unknown publisher. You can check the downloads against `SHA256SUMS.txt` in the release.
+
+**Requirements:** Windows 10 or 11, x64.
+
+## Privacy
+
+- The interface listens only on `127.0.0.1`. Nothing is reachable from other computers.
+- No account, no cloud and no telemetry. Scan results never leave your computer.
+- Data is stored in `%LOCALAPPDATA%\Lanora\`, with a retention setting and deletion of single scans or all data.
+
+## Responsible use
+
+Only scan networks and systems that you own or are authorized to test. The standard scan is limited to your directly connected private network. Hostnames and external targets are scanned only by the advanced scan, and only after you tick the authorization checkbox.
+
+## Feedback and contributing
+
+Bug reports, ideas and pull requests are welcome in [Issues](https://github.com/smyrna-pergamum/Lanora/issues). To build from source, see [Build and test](#build-and-test).
+
+---
+
+# Technical documentation
 
 **Languages:** English is the primary language and the default for the interface, tray menu, reports and documentation. Turkish and German are available as secondary languages (Settings → Language, or per report).
 
+LANORA was built to the technical specification's **MVP** scope and the "Network Security Interface" design. Version **1.1** added an **advanced scan** that needs no installation (UDP, traceroute, device names, external/hostname targets).
+
 ## Running
 
-Double-click `dist/Lanora-1.2.0-win-x64/Lanora.exe`. No installation and no .NET runtime are required (self-contained, win-x64).
+Run the installer or the portable `Lanora.exe` from the [latest release](https://github.com/smyrna-pergamum/Lanora/releases/latest). A local build is at `dist/Lanora-1.2.0-win-x64/Lanora.exe`. No installation and no .NET runtime are required (self-contained, win-x64).
 
 - The application sits in the system tray and opens the interface in the default browser.
 - If you close the interface, double-click the tray icon or choose **Open interface**. Reloading the page ends the session for security reasons; open it from the tray again.
