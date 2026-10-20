@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>Lanora</AssemblyName>
+    <ApplicationIcon>Assets\Lanora.ico</ApplicationIcon>
+    <RootNamespace>Lanora</RootNamespace>
+    <Version>1.2.0</Version>
+    <Product>LANORA</Product>
+    <Description>Local Area Network Observation &amp; Risk Assessment</Description>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <NoWarn>$(NoWarn);NU1510</NoWarn>
+    <!-- External listening cannot be enabled via environment or appsettings (SEC01); launchSettings is not used either. -->
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>embedded</DebugType>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IsWebConfigTransformDisabled>true</IsWebConfigTransformDisabled>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\**;Resources\**;Properties\**" />
+    <None Remove="wwwroot\**;Resources\**" />
+    <EmbeddedResource Include="wwwroot\*" LogicalName="web/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Resources\*" LogicalName="res/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lanora.Tests" />
+    <EmbeddedResource Include="Assets\Lanora.ico" LogicalName="brand/Lanora.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.13" />
+    <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
+    <!-- PDFsharp 6.2.4 transitively pulls in vulnerable Pkcs 8.0.1; the patched version is pinned. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13"/>
+  </ItemGroup>
+
+</Project>

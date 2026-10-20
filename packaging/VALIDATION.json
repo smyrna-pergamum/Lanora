@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-20",
+  "source": "Lanora(1).zip, version 1.2.0",
+  "changed_existing_files": [
+    ".gitignore",
+    "README.md",
+    "src/Lanora/Lanora.csproj",
+    "src/Lanora/Program.cs",
+    "src/Lanora/wwwroot/app.js",
+    "src/Lanora/wwwroot/favicon.svg"
+  ],
+  "engine_source_unchanged": true,
+  "windows_x64_release_build": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "windows_x64_single_file_publish": "passed",
+  "pe_icon_resource_types": [
+    3,
+    14
+  ],
+  "frontend_checks": {
+    "passed": 10,
+    "failed": 0
+  },
+  "csharp_portable_harness": {
+    "total": "74",
+    "executed": "74",
+    "passed": "74",
+    "failed": "0",
+    "error": "0",
+    "timeout": "0",
+    "aborted": "0",
+    "inconclusive": "0",
+    "passedButRunAborted": "0",
+    "notRunnable": "0",
+    "notExecuted": "0",
+    "disconnected": "0",
+    "warning": "0",
+    "completed": "0",
+    "inProgress": "0",
+    "pending": "0"
+  },
+  "powershell_parser": "passed on PowerShell 7.6.7; Windows platform guard passed",
+  "yaml_xml": "passed",
+  "windows_installer_execution": "not run",
+  "github_workflow_execution": "not run",
+  "real_code_signing": "not performed"
+}

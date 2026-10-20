@@ -1,0 +1,20 @@
+bin/
+obj/
+dist/
+*.user
+.vs/
+TestResults/
+
+# Installer output, local data and signing material
+artifacts/
+*.db
+*.db-shm
+*.db-wal
+logs/
+backups/
+*.pfx
+*.p12
+*.key
+.env
+.env.*
+!.env.example

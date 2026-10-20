@@ -1,0 +1,285 @@
+{
+  "version": "rules-1.0",
+  "note": "Proposed product rules; not a universal security standard or vulnerability rating.",
+  "languages": [
+    "en",
+    "tr",
+    "de"
+  ],
+  "rules": [
+    {
+      "id": "R01",
+      "severity": "high",
+      "penalty": 25,
+      "protocol": "tcp",
+      "ports": [
+        23
+      ],
+      "requires_evidence": "telnet",
+      "title": [
+        "Unencrypted remote management (Telnet)",
+        "Şifresiz uzak yönetim (Telnet)",
+        "Unverschlüsselte Fernverwaltung (Telnet)"
+      ],
+      "observed": [
+        "TCP {port} is open and a Telnet-specific response was received.",
+        "TCP {port} açık ve Telnet protokolüne özgü bir yanıt alındı.",
+        "TCP {port} ist offen und es kam eine Telnet-typische Antwort."
+      ],
+      "meaning": [
+        "Telnet may transmit session data without encryption. Someone on the same network could observe it. This is not definitive proof of a vulnerability; a review is recommended.",
+        "Telnet, oturum bilgilerini şifrelemeden iletebilir. Aynı ağdaki biri bu trafiği görebilir. Bu bir zafiyetin kesin kanıtı değildir; incelenmesi önerilir.",
+        "Telnet kann Sitzungsdaten unverschlüsselt übertragen. Jemand im selben Netz könnte sie mitlesen. Das ist kein sicherer Beweis für eine Schwachstelle; eine Prüfung wird empfohlen."
+      ],
+      "action": [
+        "If you do not need remote management, consider disabling Telnet in the device settings. If you do, prefer an encrypted method the device supports, such as SSH, and keep the firmware updated.",
+        "Uzaktan yönetime ihtiyacın yoksa cihaz ayarlarından Telnet'i kapatmayı değerlendir. Gerekiyorsa cihazın desteklediği SSH gibi şifreli bir yöntemi tercih et ve cihaz yazılımını güncel tut.",
+        "Wenn du keine Fernverwaltung brauchst, erwäge Telnet in den Geräteeinstellungen zu deaktivieren. Andernfalls bevorzuge eine verschlüsselte Methode wie SSH und halte die Firmware aktuell."
+      ],
+      "verify": [
+        "After making changes, rescan with the same network and profile. 'Closed' means the service stopped; 'No response' is not proof of closure.",
+        "Değişiklikten sonra aynı ağ ve profille yeniden tara. Port 'Kapalı' görünürse servis kapanmıştır; 'Yanıt alınamadı' kapanma kanıtı değildir.",
+        "Scanne nach der Änderung mit demselben Netz und Profil erneut. 'Geschlossen' bedeutet, dass der Dienst beendet ist; 'Keine Antwort' ist kein Beweis."
+      ]
+    },
+    {
+      "id": "R02",
+      "severity": "high",
+      "penalty": 15,
+      "protocol": "tcp",
+      "ports": [
+        21
+      ],
+      "requires_evidence": "ftp",
+      "title": [
+        "Unencrypted file transfer (FTP)",
+        "Şifresiz dosya aktarımı (FTP)",
+        "Unverschlüsselte Dateiübertragung (FTP)"
+      ],
+      "observed": [
+        "TCP {port} is open and an FTP greeting was received.",
+        "TCP {port} açık ve FTP karşılama mesajı alındı.",
+        "TCP {port} ist offen und eine FTP-Begrüßung wurde empfangen."
+      ],
+      "meaning": [
+        "FTP may send user names and passwords without encryption. Whether it actually does depends on the settings.",
+        "FTP, kullanıcı adı ve parolayı şifrelemeden gönderebilir. Servisin gerçekten şifresiz çalışıp çalışmadığı ayarlara bağlıdır.",
+        "FTP kann Benutzernamen und Passwörter unverschlüsselt senden. Ob das tatsächlich so ist, hängt von den Einstellungen ab."
+      ],
+      "action": [
+        "Check whether you need this service. If so, enable encrypted options such as FTPS/SFTP and limit access to the users who need it.",
+        "Bu servise ihtiyacın olup olmadığını kontrol et. Gerekliyse FTPS/SFTP gibi şifreli seçenekleri etkinleştir ve erişimi yalnızca gereken kullanıcılarla sınırla.",
+        "Prüfe, ob du diesen Dienst brauchst. Falls ja, aktiviere verschlüsselte Optionen wie FTPS/SFTP und beschränke den Zugriff auf notwendige Benutzer."
+      ],
+      "verify": [
+        "After changing settings, rescan with the same profile and see whether this finding changes.",
+        "Ayarları değiştirdikten sonra aynı profille yeniden tara ve bu bulgunun değişip değişmediğine bak.",
+        "Scanne nach der Änderung mit demselben Profil erneut und prüfe, ob sich dieser Hinweis ändert."
+      ]
+    },
+    {
+      "id": "R03",
+      "severity": "high",
+      "penalty": 15,
+      "protocol": "tcp",
+      "ports": [
+        3389
+      ],
+      "title": [
+        "Remote desktop access (RDP)",
+        "Uzak masaüstü erişimi (RDP)",
+        "Remotedesktopzugriff (RDP)"
+      ],
+      "observed": [
+        "TCP {port} is open; this port is commonly used for Remote Desktop (RDP).",
+        "TCP {port} açık; bu port genellikle Uzak Masaüstü (RDP) için kullanılır.",
+        "TCP {port} ist offen; dieser Port wird üblicherweise für Remotedesktop (RDP) genutzt."
+      ],
+      "meaning": [
+        "Remote desktop allows the device to be controlled over the network. If unnecessary or protected by a weak password, it can be a risk.",
+        "Uzak masaüstü, cihazın ağ üzerinden yönetilmesine izin verir. Gereksiz açıksa veya zayıf parolayla korunuyorsa risk oluşturabilir.",
+        "Remotedesktop erlaubt die Steuerung des Geräts über das Netz. Ist er unnötig oder schwach geschützt, kann das ein Risiko sein."
+      ],
+      "action": [
+        "Do you need this service? If not, turn it off in Windows settings. If you do, keep Network Level Authentication on, limit who can sign in, and keep the system updated.",
+        "Bu servise ihtiyacın var mı? Gerekmiyorsa Windows ayarlarından kapat. Gerekliyse ağ düzeyinde kimlik doğrulamayı açık tut, erişebilecek kullanıcıları sınırla ve sistemi güncel tut.",
+        "Brauchst du diesen Dienst? Wenn nicht, deaktiviere ihn in den Windows-Einstellungen. Andernfalls lass die Authentifizierung auf Netzwerkebene aktiv, beschränke Benutzer und halte das System aktuell."
+      ],
+      "verify": [
+        "Rescan after the change. Marking the service as required does not change the finding or score; it is only your note.",
+        "Değişiklikten sonra yeniden tara. Servis gerekli olarak işaretlense bile bulgu ve puan değişmez; bu yalnızca senin notundur.",
+        "Scanne nach der Änderung erneut. Das Markieren als benötigt ändert Hinweis und Wert nicht; es ist nur deine Notiz."
+      ]
+    },
+    {
+      "id": "R04",
+      "severity": "medium",
+      "penalty": 10,
+      "protocol": "tcp",
+      "ports": [
+        445
+      ],
+      "title": [
+        "File sharing (SMB)",
+        "Dosya paylaşımı (SMB)",
+        "Dateifreigabe (SMB)"
+      ],
+      "observed": [
+        "TCP {port} is open; this port is used for Windows file and printer sharing (SMB).",
+        "TCP {port} açık; bu port Windows dosya ve yazıcı paylaşımı (SMB) için kullanılır.",
+        "TCP {port} ist offen; dieser Port wird für Windows-Datei- und Druckerfreigabe (SMB) genutzt."
+      ],
+      "meaning": [
+        "File sharing is common on local networks. What matters is who can access the shared folders.",
+        "Dosya paylaşımı yerel ağda yaygındır. Paylaşılan klasörlerin kimlere açık olduğu önemlidir.",
+        "Dateifreigaben sind in lokalen Netzen üblich. Entscheidend ist, wer auf die Freigaben zugreifen kann."
+      ],
+      "action": [
+        "If you do not need sharing, consider turning it off. If you do, review share permissions, keep guest access disabled, and keep the system updated.",
+        "Paylaşıma ihtiyacın yoksa kapatmayı değerlendir. Gerekliyse paylaşım izinlerini gözden geçir, misafir erişimini kapalı tut ve sistemi güncel tut.",
+        "Wenn du keine Freigabe brauchst, erwäge sie zu deaktivieren. Andernfalls prüfe Berechtigungen, lass Gastzugriff deaktiviert und halte das System aktuell."
+      ],
+      "verify": [
+        "Rescan with the same network and profile to compare the port state.",
+        "Aynı ağ ve profille yeniden tarayarak portun durumunu karşılaştır.",
+        "Scanne mit demselben Netz und Profil erneut, um den Portstatus zu vergleichen."
+      ]
+    },
+    {
+      "id": "R05",
+      "severity": "medium",
+      "penalty": 10,
+      "protocol": "tcp",
+      "ports": [
+        21,
+        23
+      ],
+      "when_evidence_missing": true,
+      "title": [
+        "Unverified remote access port",
+        "Doğrulanmamış uzak erişim portu",
+        "Nicht bestätigter Fernzugriffsport"
+      ],
+      "observed": [
+        "TCP {port} is open but the expected FTP/Telnet response was not received; the service was not verified.",
+        "TCP {port} açık ancak beklenen FTP/Telnet yanıtı alınamadı; servis doğrulanmadı.",
+        "TCP {port} ist offen, aber die erwartete FTP-/Telnet-Antwort kam nicht; der Dienst wurde nicht bestätigt."
+      ],
+      "meaning": [
+        "This port number is often associated with unencrypted services, but the device may run a different service here.",
+        "Bu port numarası genellikle şifresiz servislerle ilişkilidir, ancak cihaz burada başka bir servis çalıştırıyor olabilir.",
+        "Diese Portnummer wird oft mit unverschlüsselten Diensten verbunden, das Gerät kann hier aber einen anderen Dienst betreiben."
+      ],
+      "action": [
+        "Check in the device's admin page which service runs on this port. If you do not use it, consider turning it off.",
+        "Cihazın yönetim ekranından bu portta hangi servisin çalıştığını kontrol et. Kullanmıyorsan kapatmayı değerlendir.",
+        "Prüfe in der Verwaltungsoberfläche des Geräts, welcher Dienst hier läuft. Wenn du ihn nicht nutzt, erwäge ihn zu deaktivieren."
+      ],
+      "verify": [
+        "If a service response is received in a later scan, the finding may become a more specific rule.",
+        "Yeniden taramada servis yanıtı alınırsa bulgu daha kesin bir kurala dönüşebilir.",
+        "Wenn bei einem späteren Scan eine Dienstantwort kommt, kann der Hinweis genauer eingestuft werden."
+      ]
+    },
+    {
+      "id": "R06",
+      "severity": "info",
+      "penalty": 0,
+      "protocol": "tcp",
+      "ports": [
+        80,
+        443
+      ],
+      "title": [
+        "Web interface (HTTP/HTTPS)",
+        "Web arayüzü (HTTP/HTTPS)",
+        "Weboberfläche (HTTP/HTTPS)"
+      ],
+      "observed": [
+        "TCP {port} is open; the device may offer a web service.",
+        "TCP {port} açık; cihaz bir web servisi sunuyor olabilir.",
+        "TCP {port} ist offen; das Gerät bietet möglicherweise einen Webdienst an."
+      ],
+      "meaning": [
+        "Routers, printers and smart devices often use a web interface for management. This alone is not a problem.",
+        "Router, yazıcı ve akıllı cihazlar çoğunlukla yönetim için web arayüzü kullanır. Bu tek başına bir sorun değildir.",
+        "Router, Drucker und smarte Geräte nutzen oft eine Weboberfläche zur Verwaltung. Das allein ist kein Problem."
+      ],
+      "action": [
+        "Make sure the admin interface does not use a default password and that the firmware is up to date.",
+        "Yönetim arayüzünün varsayılan parolasını değiştirdiğinden ve cihaz yazılımının güncel olduğundan emin ol.",
+        "Stelle sicher, dass die Verwaltungsoberfläche kein Standardpasswort nutzt und die Firmware aktuell ist."
+      ],
+      "verify": [
+        "This informational item does not affect the score. You can check the version on the device's admin page.",
+        "Bu bilgilendirme puanı etkilemez. Cihazın yönetim sayfasından sürüm bilgisini kontrol edebilirsin.",
+        "Dieser Hinweis beeinflusst den Wert nicht. Die Version kannst du auf der Verwaltungsseite prüfen."
+      ]
+    },
+    {
+      "id": "R07",
+      "severity": "info",
+      "penalty": 0,
+      "protocol": "tcp",
+      "ports": [],
+      "title": [
+        "Observed service",
+        "Gözlenen servis",
+        "Beobachteter Dienst"
+      ],
+      "observed": [
+        "TCP {port} is open.",
+        "TCP {port} açık.",
+        "TCP {port} ist offen."
+      ],
+      "meaning": [
+        "A port number alone does not prove a product, version or vulnerability.",
+        "Port numarası tek başına ürün, sürüm veya güvenlik açığı kanıtı değildir.",
+        "Eine Portnummer allein beweist weder Produkt, Version noch Schwachstelle."
+      ],
+      "action": [
+        "Confirm in the device settings why this service is open. If you do not need it, consider turning it off.",
+        "Bu servisin hangi amaçla açık olduğunu cihaz ayarlarından doğrula. İhtiyacın yoksa kapatmayı değerlendir.",
+        "Prüfe in den Geräteeinstellungen, wofür dieser Dienst offen ist. Wenn du ihn nicht brauchst, erwäge ihn zu deaktivieren."
+      ],
+      "verify": [
+        "This informational item does not affect the score.",
+        "Bu bilgilendirme puanı etkilemez.",
+        "Dieser Hinweis beeinflusst den Wert nicht."
+      ]
+    },
+    {
+      "id": "R08",
+      "severity": "info",
+      "penalty": 0,
+      "protocol": "tcp",
+      "ports": [],
+      "scope_warning": true,
+      "title": [
+        "Uncertain results: coverage warning",
+        "Belirsiz sonuçlar: kapsam uyarısı",
+        "Unklare Ergebnisse: Abdeckungshinweis"
+      ],
+      "observed": [
+        "{count} port probes did not produce a definite answer (no response, filtered or not tested).",
+        "{count} port denemesinden kesin yanıt alınamadı (yanıtsız, filtrelenmiş veya test edilmemiş).",
+        "{count} Portprüfungen ergaben keine eindeutige Antwort (keine Antwort, gefiltert oder nicht getestet)."
+      ],
+      "meaning": [
+        "A firewall may block responses. No response does not prove that a port is closed; we cannot say anything about these ports.",
+        "Güvenlik duvarı yanıtları engelleyebilir. Yanıt alınmaması portun kapalı olduğunu kanıtlamaz; bu portlar hakkında bir şey söyleyemiyoruz.",
+        "Eine Firewall kann Antworten blockieren. Keine Antwort beweist nicht, dass ein Port geschlossen ist; über diese Ports lässt sich nichts sagen."
+      ],
+      "action": [
+        "Make sure the device is online and rescan. If coverage is low, no score is shown.",
+        "Cihazın çevrimiçi olduğundan emin olup yeniden tarayabilirsin. Kapsam düşükse puan gösterilmez.",
+        "Stelle sicher, dass das Gerät online ist, und scanne erneut. Bei geringer Abdeckung wird kein Wert angezeigt."
+      ],
+      "verify": [
+        "A device score is calculated when measurement coverage is 70 percent or higher.",
+        "Ölçüm kapsamı yüzde 70 ve üzerindeyse cihaz puanı hesaplanır.",
+        "Ein Gerätewert wird ab 70 Prozent Messabdeckung berechnet."
+      ]
+    }
+  ]
+}

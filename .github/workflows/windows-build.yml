@@ -1,0 +1,40 @@
+name: Windows installer (unsigned)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Test C#
+        run: dotnet test Lanora.slnx -c Debug --nologo --logger trx
+      - name: Test frontend
+        run: node tests/frontend/frontend-checks.cjs
+      - name: Install Inno Setup if needed
+        shell: pwsh
+        run: |
+          $compilers = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe")
+          if (-not ($compilers | Where-Object { Test-Path -LiteralPath $_ })) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed.' }
+          }
+      - name: Build installer and portable ZIP
+        shell: pwsh
+        run: ./packaging/Build-Windows.ps1
+      - name: Upload unsigned downloads
+        uses: actions/upload-artifact@v7
+        with:
+          name: Lanora-Windows-unsigned
+          path: dist/installer/*
+          if-no-files-found: error
+          retention-days: 14
