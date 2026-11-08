@@ -43,7 +43,7 @@ LANORA is a free, open-source network scanner for home and small-office Windows 
 
 ## Quick start
 
-1. Download `Lanora-1.2.0-Setup-x64.exe` (installer) or `Lanora-1.2.0-Portable-x64.zip` (no installation) from the [latest release](https://github.com/smyrna-pergamum/Lanora/releases/latest).
+1. Download `Lanora-1.2.1-Setup-x64.exe` (installer) or `Lanora-1.2.1-Portable-x64.zip` (no installation) from the [latest release](https://github.com/smyrna-pergamum/Lanora/releases/latest).
 2. Run it. The installer installs for the current user only and needs no administrator rights or .NET runtime.
 3. LANORA sits in the system tray and opens its interface in your default browser. Click **New scan**.
 
@@ -75,7 +75,7 @@ LANORA was built to the technical specification's **MVP** scope and the "Network
 
 ## Running
 
-Run the installer or the portable `Lanora.exe` from the [latest release](https://github.com/smyrna-pergamum/Lanora/releases/latest). A local build is at `dist/Lanora-1.2.0-win-x64/Lanora.exe`. No installation and no .NET runtime are required (self-contained, win-x64).
+Run the installer or the portable `Lanora.exe` from the [latest release](https://github.com/smyrna-pergamum/Lanora/releases/latest). A local build is at `dist/Lanora-1.2.1-win-x64/Lanora.exe`. No installation and no .NET runtime are required (self-contained, win-x64).
 
 - The application sits in the system tray and opens the interface in the default browser.
 - If you close the interface, double-click the tray icon or choose **Open interface**. Reloading the page ends the session for security reasons; open it from the tray again.
@@ -89,10 +89,25 @@ Data: `%LOCALAPPDATA%\Lanora\` (`lanora.db`, `logs\`, `backups\`).
 ```
 dotnet test
 node tests/frontend/frontend-checks.cjs
-dotnet publish src/Lanora/Lanora.csproj -c Release -o dist/Lanora-1.2.0-win-x64
+dotnet publish src/Lanora/Lanora.csproj -c Release -o dist/Lanora-1.2.1-win-x64
 ```
 
 Requirements: .NET 10 SDK (Windows). Development flags: `--no-browser`, `--data-dir <folder>`, `--dev-url-file <file>` (Debug builds only: writes the launch URL to a file for testing).
+
+## 1.2.1 — Bug fixes
+
+Fixes from two code reviews. Each fix has a regression test in `tests/Lanora.Tests/ReviewRegressionTests.cs`, `tests/Lanora.Tests/FollowUpReviewTests.cs` or `tests/frontend/frontend-checks.cjs`.
+
+- **Scan comparison** no longer fails for advanced scans with UDP: a device with the same port number open over TCP and UDP (e.g. 53/tcp and 53/udp) caused an error, and the comparison was not shown. UDP changes are listed as `53/udp`.
+- **Scan state** can no longer be overwritten after a scan has finished. Previously a cancelled scan could stay "cancelling", could not be deleted and showed as "interrupted" after a restart.
+- **Exiting during a scan** waits up to 30 seconds for the results to be saved (was 8 seconds, which could lose results).
+- **Deleting a scan that is still running** returns "A scan is already running" instead of "not found".
+- **http-title** finds page titles much more reliably (headers and body sent separately) and shows non-English titles correctly (UTF-8).
+- **ssl-enum** results are in English like the other checks, and the check stops when the scan is cancelled.
+- **IPv4 targets** written with non-ASCII digits are rejected with a clear message instead of an internal error; range ends such as `+25` or `025` are rejected.
+- Devices of an advanced scan stopped before the service phase still get a device type estimate.
+- Advanced scan invalid targets have their own message (the old one said host names are not accepted).
+- Turkish texts improved; the HTTP User-Agent reports the real version; `--dev-url-file` is only available in Debug builds.
 
 ## 1.2.0 — English as primary language
 
