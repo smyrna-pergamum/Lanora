@@ -33,7 +33,7 @@ public sealed partial class NativeScripts
                 else if (port is 443 or 8443 or 9443)
                     await SslEnum(ip, port, scripts, ct).ConfigureAwait(false);
                 else if (port is 22 or 2222)
-                    await SshHostKey(ip, port, scripts, ct).ConfigureAwait(false);
+                    await SshBanner(ip, port, scripts, ct).ConfigureAwait(false);
                 else if (port is 21 or 2121)
                     await FtpAnon(ip, port, scripts, ct).ConfigureAwait(false);
             }
@@ -60,21 +60,62 @@ public sealed partial class NativeScripts
         }
     }
 
-    private static async Task HttpTitle(uint ip, int port, List<ScriptEvidence> scripts, CancellationToken ct)
+    internal static async Task HttpTitle(uint ip, int port, List<ScriptEvidence> scripts, CancellationToken ct)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(Timeout);
         await using var stream = await ConnectAsync(ip, port, cts.Token).ConfigureAwait(false);
-        var req = Encoding.ASCII.GetBytes($"GET / HTTP/1.0\r\nHost: {Ipv4.Format(ip)}\r\nUser-Agent: LANORA/1.1\r\nConnection: close\r\n\r\n");
+        var req = Encoding.ASCII.GetBytes($"GET / HTTP/1.0\r\nHost: {Ipv4.Format(ip)}\r\nUser-Agent: {UserAgent}\r\nConnection: close\r\n\r\n");
         await stream.WriteAsync(req, cts.Token).ConfigureAwait(false);
-        var data = await ReadLimited(stream, 16 * 1024, cts.Token).ConfigureAwait(false);
-        var text = Encoding.Latin1.GetString(data);
-        var m = TitleTag().Match(text);
-        if (m.Success)
+        // Read until the title is complete, the server closes the connection or the limit is reached. Stopping at the
+        // first line break (as for banners) only returned the status line, so the title was almost never found.
+        var data = await ReadLimited(stream, 16 * 1024, cts.Token,
+            (b, n) => IndexOfIgnoreCase(b, n, "</title"u8) >= 0).ConfigureAwait(false);
+        var title = ExtractTitle(data);
+        if (!string.IsNullOrEmpty(title)) scripts.Add(new ScriptEvidence($"http-title ({port})", title));
+    }
+
+    /// <summary>User-Agent of the HTTP checks, with the real application version.</summary>
+    internal static string UserAgent => "LANORA/" + ScanOrchestrator.AppVersion;
+
+    /// <summary>
+    /// Extracts the page title. The body is decoded as UTF-8 when it is valid UTF-8 (most modern devices, e.g.
+    /// "Modem Arayüzü"); otherwise as Latin-1, so older single-byte pages still produce a readable title.
+    /// </summary>
+    internal static string? ExtractTitle(byte[] data)
+    {
+        string text;
+        try { text = new UTF8Encoding(false, throwOnInvalidBytes: true).GetString(data); }
+        catch (DecoderFallbackException)
         {
-            var title = SafeText.Clean(WebUtility.HtmlDecode(m.Groups[1].Value), 160);
-            if (!string.IsNullOrEmpty(title)) scripts.Add(new ScriptEvidence($"http-title ({port})", title));
+            // The limit may cut a multi-byte character at the very end; retry without the last few bytes before giving up.
+            text = TryUtf8(data, 3) ?? Encoding.Latin1.GetString(data);
         }
+        var m = TitleTag().Match(text);
+        return m.Success ? SafeText.Clean(WebUtility.HtmlDecode(m.Groups[1].Value), 160) : null;
+    }
+
+    private static string? TryUtf8(byte[] data, int maxTrim)
+    {
+        var strict = new UTF8Encoding(false, throwOnInvalidBytes: true);
+        for (var trim = 1; trim <= Math.Min(maxTrim, data.Length); trim++)
+        {
+            try { return strict.GetString(data, 0, data.Length - trim); }
+            catch (DecoderFallbackException) { }
+        }
+        return null;
+    }
+
+    private static int IndexOfIgnoreCase(byte[] buffer, int count, ReadOnlySpan<byte> needle)
+    {
+        for (var i = 0; i + needle.Length <= count; i++)
+        {
+            var match = true;
+            for (var j = 0; j < needle.Length && match; j++)
+                match = char.ToLowerInvariant((char)buffer[i + j]) == (char)needle[j];
+            if (match) return i;
+        }
+        return -1;
     }
 
     private static async Task SslEnum(uint ip, int port, List<ScriptEvidence> scripts, CancellationToken ct)
@@ -86,9 +127,8 @@ public sealed partial class NativeScripts
             cts.CancelAfter(Timeout);
             try
             {
-                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                await socket.ConnectAsync(new IPEndPoint(Ipv4.ToAddress(ip), port), cts.Token).ConfigureAwait(false);
-                await using var net = new NetworkStream(socket, ownsSocket: true);
+                // ConnectAsync disposes the socket if the connection fails (the socket used to leak here).
+                await using var net = await ConnectAsync(ip, port, cts.Token).ConfigureAwait(false);
                 await using var ssl = new SslStream(net, false, (_, _, _, _) => true);
                 await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
                 {
@@ -98,16 +138,18 @@ public sealed partial class NativeScripts
                 }, cts.Token).ConfigureAwait(false);
                 supported.Add(proto == SslProtocols.Tls13 ? "TLS 1.3" : "TLS 1.2");
             }
-            catch
+            catch (Exception) when (!ct.IsCancellationRequested)
             {
-                // This version is not supported.
+                // This version is not supported (a cancelled scan is not swallowed and stops the check).
             }
         }
+        // Evidence texts are language-neutral English like the other checks (was Turkish "Desteklenen: ").
         if (supported.Count > 0)
-            scripts.Add(new ScriptEvidence($"ssl-enum ({port})", "Desteklenen: " + string.Join(", ", supported)));
+            scripts.Add(new ScriptEvidence($"ssl-enum ({port})", "Supported: " + string.Join(", ", supported)));
     }
 
-    private static async Task SshHostKey(uint ip, int port, List<ScriptEvidence> scripts, CancellationToken ct)
+    /// <summary>Reads the SSH identification line ("SSH-2.0-..."); no key exchange, so no host key is collected.</summary>
+    private static async Task SshBanner(uint ip, int port, List<ScriptEvidence> scripts, CancellationToken ct)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(Timeout);
@@ -195,8 +237,11 @@ public sealed partial class NativeScripts
         return new LineReply(text.Length >= 3 && int.TryParse(text[..3], out var code) ? code : 0, SafeText.Clean(text, 200) ?? "");
     }
 
-    private static async Task<byte[]> ReadLimited(NetworkStream stream, int max, CancellationToken ct)
+    /// <summary>Reads up to <paramref name="max"/> bytes; stops at the first line break unless another stop condition is given.</summary>
+    private static async Task<byte[]> ReadLimited(NetworkStream stream, int max, CancellationToken ct, Func<byte[], int, bool>? done = null)
     {
+        // Line endings are searched across all received data (not only the first bytes).
+        done ??= (b, n) => Array.IndexOf(b, (byte)'\n', 0, n) >= 0;
         var buffer = new byte[max];
         var total = 0;
         try
@@ -206,8 +251,7 @@ public sealed partial class NativeScripts
                 var n = await stream.ReadAsync(buffer.AsMemory(total, max - total), ct).ConfigureAwait(false);
                 if (n == 0) break;
                 total += n;
-                // Line endings are searched across all received data (not only the first bytes).
-                if (Array.IndexOf(buffer, (byte)'\n', 0, total) >= 0) break;
+                if (done(buffer, total)) break;
             }
         }
         catch (Exception) when (total > 0) { }

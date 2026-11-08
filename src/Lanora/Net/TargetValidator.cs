@@ -76,7 +76,7 @@ public static class TargetValidator
             if (!Ipv4.TryParse(left, out var start)) throw new TargetValidationException(400, "TARGET_INVALID", new { target = item });
             uint end;
             if (Ipv4.TryParse(right, out var full)) end = full;
-            else if (byte.TryParse(right, out var last)) end = (start & 0xFFFFFF00) | last;
+            else if (Ipv4.TryParseOctet(right, out var last)) end = (start & 0xFFFFFF00) | last;
             else throw new TargetValidationException(400, "TARGET_INVALID", new { target = item });
             if (end < start) throw new TargetValidationException(400, "TARGET_INVALID", new { target = item });
             if ((long)end - start + 1 > MaxAddresses) throw new TargetValidationException(400, "TARGET_LIMIT", new { max = MaxAddresses, target = item });

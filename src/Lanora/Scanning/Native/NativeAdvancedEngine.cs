@@ -155,7 +155,7 @@ public sealed class NativeAdvancedEngine
             // Device type always; operating system estimate only when the option is on (F09).
             HostClassifier.Classify(h, spec.OsDetection);
 
-            // NSE benzeri kontroller
+            // Service checks (http-title, ssl-enum, ssh-banner, ftp-anon)
             if (spec.Scripts && openTcp.Count > 0)
             {
                 var sc = await _scripts.RunAsync(h.Ip, openTcp, spec.IncludeVuln, ct).ConfigureAwait(false);
