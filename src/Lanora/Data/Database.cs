@@ -146,8 +146,9 @@ public sealed class Database : IDisposable
 
     public void Dispose()
     {
+        // The write lock is deliberately not disposed: a scan that is still finishing during shutdown would otherwise get an
+        // ObjectDisposedException and lose its results. SemaphoreSlim holds no unmanaged resources unless its wait handle is used.
         SqliteConnection.ClearAllPools();
-        _writeLock.Dispose();
     }
 }
 

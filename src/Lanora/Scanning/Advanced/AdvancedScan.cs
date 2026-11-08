@@ -103,7 +103,7 @@ public static partial class AdvancedScanValidator
 
         foreach (var raw in req.Targets.Select(x => (x ?? "").Trim()).Where(x => x.Length > 0))
         {
-            if (!IsValidTarget(raw)) throw new ApiException(400, "TARGET_INVALID", new { target = raw });
+            if (!IsValidTarget(raw)) throw new ApiException(400, "ADV_TARGET_INVALID", new { target = raw });
             var isHostname = !LooksNumeric(raw);
             if (isHostname)
             {
@@ -215,7 +215,7 @@ public static partial class AdvancedScanValidator
     {
         if (item.Contains('/'))
         {
-            if (!Cidr.TryParse(item, out var c)) throw new ApiException(400, "TARGET_INVALID", new { target = item });
+            if (!Cidr.TryParse(item, out var c)) throw new ApiException(400, "ADV_TARGET_INVALID", new { target = item });
             if (c.AddressCount > MaxExpandPerEntry) throw new ApiException(400, "TARGET_LIMIT", new { max = MaxTargets, target = item });
             // For /30 and larger blocks the network and broadcast addresses are removed from the target list (F06).
             var skipEdges = c.Prefix <= 30;
@@ -231,13 +231,13 @@ public static partial class AdvancedScanValidator
         {
             var left = item[..dash].Trim();
             var right = item[(dash + 1)..].Trim();
-            if (!Ipv4.TryParse(left, out var start)) throw new ApiException(400, "TARGET_INVALID", new { target = item });
-            uint end = Ipv4.TryParse(right, out var full) ? full : byte.TryParse(right, out var last) ? (start & 0xFFFFFF00) | last : throw new ApiException(400, "TARGET_INVALID", new { target = item });
-            if (end < start || end - start + 1 > MaxExpandPerEntry) throw new ApiException(400, "TARGET_INVALID", new { target = item });
+            if (!Ipv4.TryParse(left, out var start)) throw new ApiException(400, "ADV_TARGET_INVALID", new { target = item });
+            uint end = Ipv4.TryParse(right, out var full) ? full : byte.TryParse(right, out var last) ? (start & 0xFFFFFF00) | last : throw new ApiException(400, "ADV_TARGET_INVALID", new { target = item });
+            if (end < start || end - start + 1 > MaxExpandPerEntry) throw new ApiException(400, "ADV_TARGET_INVALID", new { target = item });
             for (long ip = start; ip <= end; ip++) yield return (uint)ip;
             yield break;
         }
-        if (!Ipv4.TryParse(item, out var single)) throw new ApiException(400, "TARGET_INVALID", new { target = item });
+        if (!Ipv4.TryParse(item, out var single)) throw new ApiException(400, "ADV_TARGET_INVALID", new { target = item });
         yield return single;
     }
 

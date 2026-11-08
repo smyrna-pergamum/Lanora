@@ -69,8 +69,21 @@ public sealed class ScanStore
         return id;
     }
 
+    /// <summary>
+    /// Moves an active scan forward only (queued → running → cancelling). The writes are queued asynchronously, so a late
+    /// "running" or "cancelling" write must never overwrite a later state such as cancelling or the final state.
+    /// </summary>
     public Task SetStateAsync(string scanId, string state) =>
-        _db.WriteAsync((c, tx) => { Db.Exec(c, tx, "UPDATE scan SET state=$s WHERE id=$id", ("$s", state), ("$id", scanId)); });
+        _db.WriteAsync((c, tx) =>
+        {
+            var from = state switch
+            {
+                ScanStates.Running => "'queued'",
+                ScanStates.Cancelling => "'queued','running'",
+                _ => throw new ArgumentOutOfRangeException(nameof(state), state, "only active states are set here"),
+            };
+            Db.Exec(c, tx, $"UPDATE scan SET state=$s WHERE id=$id AND state IN ({from})", ("$s", state), ("$id", scanId));
+        });
 
     public Task<long> SaveHostAsync(string scanId, string scopeId, HostResult h, IReadOnlyList<FindingResult> findings, HostScore score) =>
         _db.WriteAsync((c, tx) =>
@@ -536,12 +549,13 @@ public sealed class ScanStore
         {
             mapA.TryGetValue(key, out var ha);
             mapB.TryGetValue(key, out var hb);
-            var sa = ha?.Open.ToDictionary(o => o.Port, o => o.State) ?? new();
-            var sb = hb?.Open.ToDictionary(o => o.Port, o => o.State) ?? new();
-            var opened = sb.Where(kv => kv.Value == PortState.Open && (!sa.TryGetValue(kv.Key, out var s) || s != PortState.Open)).Select(kv => kv.Key).Order().ToList();
-            var closed = sa.Where(kv => kv.Value == PortState.Open && sb.TryGetValue(kv.Key, out var s) && s == PortState.Closed).Select(kv => kv.Key).Order().ToList();
-            var silent = sa.Where(kv => kv.Value == PortState.Open && sb.TryGetValue(kv.Key, out var s) && s is not (PortState.Open or PortState.Closed or PortState.NotTested)).Select(kv => kv.Key).Order().ToList();
-            var notMeasured = sa.Where(kv => kv.Value == PortState.Open && (!sb.TryGetValue(kv.Key, out var s) || s == PortState.NotTested)).Select(kv => kv.Key).Order().ToList();
+            // Keyed by protocol and port: the same port number can be observed over both TCP and UDP (e.g. 53/tcp and 53/udp).
+            var sa = ha?.Open.ToDictionary(o => (o.Protocol, o.Port), o => o.State) ?? new();
+            var sb = hb?.Open.ToDictionary(o => (o.Protocol, o.Port), o => o.State) ?? new();
+            var opened = PortKeys(sb.Where(kv => kv.Value == PortState.Open && (!sa.TryGetValue(kv.Key, out var s) || s != PortState.Open)));
+            var closed = PortKeys(sa.Where(kv => kv.Value == PortState.Open && sb.TryGetValue(kv.Key, out var s) && s == PortState.Closed));
+            var silent = PortKeys(sa.Where(kv => kv.Value == PortState.Open && sb.TryGetValue(kv.Key, out var s) && s is not (PortState.Open or PortState.Closed or PortState.NotTested)));
+            var notMeasured = PortKeys(sa.Where(kv => kv.Value == PortState.Open && (!sb.TryGetValue(kv.Key, out var s) || s == PortState.NotTested)));
             var status = ha is null ? "new_device" : hb is null ? "not_observed" : opened.Count + closed.Count + silent.Count + notMeasured.Count == 0 ? "unchanged" : "changed";
             devices.Add(new
             {
@@ -573,6 +587,14 @@ public sealed class ScanStore
             devices,
         };
     }
+
+    /// <summary>
+    /// Change lists for the comparison: TCP ports stay plain numbers (unchanged API for standard scans);
+    /// UDP ports are written as "53/udp" so they can no longer be confused with the TCP port of the same number.
+    /// </summary>
+    private static List<object> PortKeys(IEnumerable<KeyValuePair<(string Protocol, int Port), string>> items) =>
+        items.Select(kv => kv.Key).OrderBy(k => k.Port).ThenBy(k => k.Protocol, StringComparer.Ordinal)
+            .Select(k => k.Protocol == "udp" ? (object)$"{k.Port}/udp" : k.Port).ToList();
 
     /// <summary>The previous completed scan with the same network, targets, port list and ruleset version.</summary>
     public string? PreviousComparable(string scanId)

@@ -75,27 +75,34 @@ public sealed class NativeAdvancedEngine
         if (tcpPairs.Count > 0)
         {
             var perHost = hosts.ToDictionary(h => h.Ip, _ => new SemaphoreSlim(spec.PerHostConcurrency));
-            await Parallel.ForEachAsync(tcpPairs, Par(spec.Concurrency, ct), async (pair, token) =>
+            try
             {
-                var sem = perHost[pair.Host.Ip];
-                await sem.WaitAsync(token).ConfigureAwait(false);
-                try
+                await Parallel.ForEachAsync(tcpPairs, Par(spec.Concurrency, ct), async (pair, token) =>
                 {
-                    await rate.WaitAsync(token).ConfigureAwait(false);
-                    Interlocked.Increment(ref spec.Attempts);
-                    var r = await _tcp.ProbeTcpAsync(pair.Host.Ip, pair.Port, spec.TimeoutMs, token).ConfigureAwait(false);
-                    var obs = new PortObservationResult { Protocol = "tcp", Port = pair.Port, State = r.State, ReasonCode = r.ReasonCode, Method = "tcp_connect", Attempts = 1, ObservedAt = DateTimeOffset.UtcNow };
-                    lock (pair.Host) pair.Host.Ports[pair.Port] = obs;
-                    if (r.State == PortState.Open) Interlocked.Increment(ref openCount);
-                }
-                finally
-                {
-                    sem.Release();
-                    var d = Interlocked.Increment(ref tcpDone);
-                    if (d % 32 == 0) progress?.Report(new NativeProgress(25 + 35.0 * d / tcpPairs.Count, "port_scan", hosts.Count, openCount));
-                }
-            }).ConfigureAwait(false);
-            foreach (var s in perHost.Values) s.Dispose();
+                    var sem = perHost[pair.Host.Ip];
+                    await sem.WaitAsync(token).ConfigureAwait(false);
+                    try
+                    {
+                        await rate.WaitAsync(token).ConfigureAwait(false);
+                        Interlocked.Increment(ref spec.Attempts);
+                        var r = await _tcp.ProbeTcpAsync(pair.Host.Ip, pair.Port, spec.TimeoutMs, token).ConfigureAwait(false);
+                        var obs = new PortObservationResult { Protocol = "tcp", Port = pair.Port, State = r.State, ReasonCode = r.ReasonCode, Method = "tcp_connect", Attempts = 1, ObservedAt = DateTimeOffset.UtcNow };
+                        lock (pair.Host) pair.Host.Ports[pair.Port] = obs;
+                        if (r.State == PortState.Open) Interlocked.Increment(ref openCount);
+                    }
+                    finally
+                    {
+                        sem.Release();
+                        var d = Interlocked.Increment(ref tcpDone);
+                        if (d % 32 == 0) progress?.Report(new NativeProgress(25 + 35.0 * d / tcpPairs.Count, "port_scan", hosts.Count, openCount));
+                    }
+                }).ConfigureAwait(false);
+            }
+            finally
+            {
+                // Also on cancellation (previously the semaphores were only released after a complete port scan).
+                foreach (var s in perHost.Values) s.Dispose();
+            }
         }
         progress?.Report(new NativeProgress(60, "port_scan", hosts.Count, openCount));
 

@@ -213,6 +213,9 @@ public static class Endpoints
         api.MapDelete("/scans/{id}", async (string id, ScanStore store, ScanOrchestrator orch) =>
         {
             if (orch.Active?.Id == id) throw new ApiException(409, "SCAN_ACTIVE");
+            // A scan still stored as queued/running/cancelling is not deleted; report it as active, not as missing.
+            var summary = store.GetSummary(id) ?? throw new ApiException(404, "SCAN_NOT_FOUND");
+            if (ScanStates.IsActive(summary.State)) throw new ApiException(409, "SCAN_ACTIVE");
             if (!await store.DeleteScanAsync(id)) throw new ApiException(404, "SCAN_NOT_FOUND");
             return ApiResults.Ok(new { deleted = id });
         });
