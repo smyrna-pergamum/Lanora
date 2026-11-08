@@ -18,8 +18,11 @@ internal sealed record LaunchOptions(bool NoBrowser, string? DataDir, string? De
             {
                 case "--no-browser": noBrowser = true; break;
                 case "--data-dir" when i + 1 < args.Length: dataDir = args[++i]; break;
-                // Development/test only: writes the launch URL to a local file.
-                case "--dev-url-file" when i + 1 < args.Length: urlFile = args[++i]; break;
+#if DEBUG
+                // Development/test only: writes the launch URL (which contains the one-time launch secret) to a local
+                // file. Not available in Release builds, so a shipped LANORA never writes the secret to disk.
+                case "--dev-url-file" when i + 1 < args.Length: urlFile = Path.GetFullPath(args[++i]); break;
+#endif
             }
         }
         return new LaunchOptions(noBrowser, dataDir, urlFile);
@@ -124,7 +127,15 @@ internal sealed class TrayContext : ApplicationContext
     {
         if (_exiting) return;
         var url = _host.CreateLaunchUrl();
-        if (_opts.DevUrlFile is not null) File.WriteAllText(_opts.DevUrlFile, url);
+        if (_opts.DevUrlFile is not null)
+        {
+            // An unwritable path must not crash the tray app (this runs at startup and from the "show" event).
+            try { File.WriteAllText(_opts.DevUrlFile, url); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+            {
+                AppLog.Warn("tray", "dev url file could not be written: " + ex.GetType().Name);
+            }
+        }
         if (_opts.NoBrowser) return;
         try
         {

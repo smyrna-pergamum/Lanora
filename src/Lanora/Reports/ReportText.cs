@@ -89,7 +89,7 @@ public sealed class ReportText
         ["unknown"] = new[] { "Unknown", "Bilinmiyor", "Unbekannt" },
         ["random_mac"] = new[] { "Random/local MAC – manufacturer cannot be determined", "Rastgele/yerel MAC – üretici belirlenemez", "Zufällige/lokale MAC – Hersteller nicht bestimmbar" },
         ["partial_note"] = new[] { "This scan did not complete. Unmeasured ports are listed as 'Not tested' and the score is provisional.", "Bu tarama tamamlanmadı. Ölçülmeyen portlar 'Test edilmedi' olarak listelenir ve puan ön sonuçtur.", "Dieser Scan wurde nicht abgeschlossen. Nicht gemessene Ports sind als 'Nicht getestet' aufgeführt und der Wert ist vorläufig." },
-        ["running_note"] = new[] { "Snapshot time: {0}. The job is still running; the report only contains saved data.", "Snapshot zamanı: {0}. İş devam ediyor; rapor yalnızca kaydedilmiş verileri içerir.", "Snapshot-Zeit: {0}. Der Auftrag läuft noch; der Bericht enthält nur gespeicherte Daten." },
+        ["running_note"] = new[] { "Snapshot time: {0}. The job is still running; the report only contains saved data.", "Anlık görüntü zamanı: {0}. Tarama devam ediyor; rapor yalnızca kaydedilmiş verileri içerir.", "Snapshot-Zeit: {0}. Der Auftrag läuft noch; der Bericht enthält nur gespeicherte Daten." },
         ["no_devices"] = new[] { "No responding devices were found in this scan.", "Bu taramada yanıt veren cihaz bulunamadı.", "In diesem Scan wurden keine antwortenden Geräte gefunden." },
         ["no_findings"] = new[] { "No priority findings observed. This applies only to the selected ports.", "Öncelikli bulgu gözlenmedi. Bu, yalnızca seçilen portlar için geçerlidir.", "Keine prioritären Hinweise beobachtet. Das gilt nur für die ausgewählten Ports." },
         ["this_computer"] = new[] { "This computer", "Bu bilgisayar", "Dieser Computer" },
@@ -101,7 +101,7 @@ public sealed class ReportText
         ["compare_incompatible"] = new[] { "Scope differs ({0}); score changes must not be read as equivalent changes.", "Kapsam farklı ({0}); skor değişimi eşdeğer değişim olarak yorumlanmamalıdır.", "Umfang unterscheidet sich ({0}); Wertänderungen sind nicht gleichwertig." },
         ["change"] = new[] { "Change", "Değişim", "Änderung" },
         ["newly_opened"] = new[] { "Newly opened", "Yeni açılan", "Neu geöffnet" },
-        ["closed_evidence"] = new[] { "Closed (closed evidence)", "Kapandı (kapalı kanıtı)", "Geschlossen (Nachweis)" },
+        ["closed_evidence"] = new[] { "Closed (closed evidence)", "Kapandı (kanıtlı)", "Geschlossen (Nachweis)" },
         ["no_longer"] = new[] { "No longer responding", "Artık yanıt yok", "Keine Antwort mehr" },
         ["not_measured"] = new[] { "Not measured", "Ölçülmedi", "Nicht gemessen" },
         ["before"] = new[] { "Before", "Önce", "Vorher" },
@@ -123,8 +123,8 @@ public sealed class ReportText
         ["hostname"] = new[] { "Hostname", "Cihaz adı", "Hostname" },
         ["engine_mode"] = new[] { "Scan engine", "Tarama motoru", "Scan-Engine" },
         ["advanced_engine"] = new[] { "Advanced scan", "Gelişmiş tarama", "Erweiterter Scan" },
-        ["external_note"] = new[] { "This scan includes external/hostname targets and was run under the user's authorization statement.", "Bu tarama yerel ağ dışı/hostname hedefleri içerir ve kullanıcı yetki beyanıyla yürütülmüştür.", "Dieser Scan enthält externe/Hostname-Ziele und wurde mit Nutzerfreigabe ausgeführt." },
-        ["scripts"] = new[] { "Script results (NSE)", "Betik sonuçları (NSE)", "Skriptergebnisse (NSE)" },
+        ["external_note"] = new[] { "This scan includes external/hostname targets and was run under the user's authorization statement.", "Bu tarama yerel ağ dışındaki hedefleri veya ana bilgisayar adlarını içerir ve kullanıcının yetki beyanıyla yürütülmüştür.", "Dieser Scan enthält externe/Hostname-Ziele und wurde mit Nutzerfreigabe ausgeführt." },
+        ["scripts"] = new[] { "Service check results", "Servis kontrolü sonuçları", "Ergebnisse der Dienstprüfungen" },
         ["traceroute"] = new[] { "Traceroute", "Traceroute", "Traceroute" },
     };
 

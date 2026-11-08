@@ -92,7 +92,7 @@ node tests/frontend/frontend-checks.cjs
 dotnet publish src/Lanora/Lanora.csproj -c Release -o dist/Lanora-1.2.0-win-x64
 ```
 
-Requirements: .NET 10 SDK (Windows). Development flags: `--no-browser`, `--data-dir <folder>`, `--dev-url-file <file>` (writes the launch URL to a file; testing only).
+Requirements: .NET 10 SDK (Windows). Development flags: `--no-browser`, `--data-dir <folder>`, `--dev-url-file <file>` (Debug builds only: writes the launch URL to a file for testing).
 
 ## 1.2.0 — English as primary language
 

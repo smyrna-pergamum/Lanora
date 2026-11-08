@@ -27,7 +27,7 @@ public sealed class AdvancedScanRequest
     public bool OsDetection { get; set; } = true;
     public bool Traceroute { get; set; }
     public bool ReverseDns { get; set; } = true;
-    public bool ServiceChecks { get; set; }               // servis kontrolleri (http-title, ssl, ssh, ftp-anon)
+    public bool ServiceChecks { get; set; }               // service checks (http-title, ssl-enum, ssh-banner, ftp-anon)
     /// <summary>User's authorization statement for scanning external/hostname targets (compliance gate).</summary>
     public bool Authorized { get; set; }
 }
@@ -68,7 +68,8 @@ public static partial class AdvancedScanValidator
     public static readonly int[] TopTcpPorts = { 21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445, 993, 995, 1723, 3306, 3389, 5432, 5900, 5985, 6379, 8080, 8443, 1433, 1521, 2049, 2375, 3000, 5000, 5060, 5601, 6443, 7070, 8000, 8008, 8081, 8088, 8888, 9000, 9090, 9100, 9200, 10000, 27017, 161, 389, 636, 873, 902, 1194, 1400, 1883, 2082, 2083, 2222, 2869, 3283, 5222, 5357, 5555, 8009, 8181, 8291, 32400, 49152, 62078, 20, 37, 79, 88, 113, 119, 179, 427, 465, 512, 513, 514, 515, 548, 554, 587, 631, 646, 990, 992, 1080, 2000, 2121, 2376, 3128, 3260, 3690, 4000, 4443, 5001, 5009, 5061, 5800, 5901, 5986, 6000, 6667, 7000, 7100, 7547, 7777, 8001, 8089, 8090, 8200, 8333, 8883, 9001, 9080, 9443, 9999, 10250, 11211, 1025, 1026, 1027 };
     public static readonly int[] DefaultUdpPorts = { 53, 123, 161, 137, 1900, 5353, 69, 111, 500, 520 };
 
-    [GeneratedRegex(@"^(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?$|^(?:\d{1,3}\.){3}\d{1,3}-\d{1,3}$", RegexOptions.CultureInvariant)]
+    // ASCII digits only ([0-9], not \d), matching Ipv4.TryParse.
+    [GeneratedRegex(@"^(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?:/[0-9]{1,2})?$|^(?:[0-9]{1,3}\.){3}[0-9]{1,3}-[0-9]{1,3}$", RegexOptions.CultureInvariant)]
     private static partial Regex Ipv4Target();
 
     [GeneratedRegex(@"^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63})*\.?$", RegexOptions.CultureInvariant)]
@@ -232,7 +233,7 @@ public static partial class AdvancedScanValidator
             var left = item[..dash].Trim();
             var right = item[(dash + 1)..].Trim();
             if (!Ipv4.TryParse(left, out var start)) throw new ApiException(400, "ADV_TARGET_INVALID", new { target = item });
-            uint end = Ipv4.TryParse(right, out var full) ? full : byte.TryParse(right, out var last) ? (start & 0xFFFFFF00) | last : throw new ApiException(400, "ADV_TARGET_INVALID", new { target = item });
+            uint end = Ipv4.TryParse(right, out var full) ? full : Ipv4.TryParseOctet(right, out var last) ? (start & 0xFFFFFF00) | last : throw new ApiException(400, "ADV_TARGET_INVALID", new { target = item });
             if (end < start || end - start + 1 > MaxExpandPerEntry) throw new ApiException(400, "ADV_TARGET_INVALID", new { target = item });
             for (long ip = start; ip <= end; ip++) yield return (uint)ip;
             yield break;

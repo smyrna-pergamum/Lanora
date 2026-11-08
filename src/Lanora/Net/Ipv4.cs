@@ -7,7 +7,9 @@ namespace Lanora.Net;
 /// <summary>IPv4 helpers. Addresses are stored as uint in host byte order.</summary>
 public static partial class Ipv4
 {
-    [GeneratedRegex(@"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$", RegexOptions.CultureInvariant)]
+    // [0-9], not \d: in .NET \d also matches non-ASCII digits (e.g. Arabic-Indic or full-width), which int.Parse then
+    // rejects with a FormatException (HTTP 500 instead of TARGET_INVALID).
+    [GeneratedRegex(@"^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$", RegexOptions.CultureInvariant)]
     private static partial Regex DottedQuad();
 
     /// <summary>Accepts only the four-octet decimal form (forms such as "1" or "0x7f.1" are rejected).</summary>
@@ -29,6 +31,20 @@ public static partial class Ipv4
     }
 
     public static uint Parse(string text) => TryParse(text, out var v) ? v : throw new FormatException(text);
+
+    /// <summary>
+    /// Last octet of a short range such as "192.168.1.20-25": 1–3 ASCII digits, 0–255, no sign, spaces or leading zero.
+    /// byte.TryParse also accepted "+25", " 25" and culture-specific forms.
+    /// </summary>
+    public static bool TryParseOctet(string? text, out byte value)
+    {
+        value = 0;
+        if (text is not { Length: >= 1 and <= 3 } || !text.All(char.IsAsciiDigit) || (text.Length > 1 && text[0] == '0')) return false;
+        var n = int.Parse(text, CultureInfo.InvariantCulture);
+        if (n > 255) return false;
+        value = (byte)n;
+        return true;
+    }
 
     public static uint FromAddress(IPAddress address)
     {

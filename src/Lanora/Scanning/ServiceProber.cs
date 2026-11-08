@@ -98,7 +98,7 @@ public sealed partial class ServiceProber
         cts.CancelAfter(Timeout);
         using var socket = await ConnectAsync(ip, port, cts.Token).ConfigureAwait(false);
         await using var stream = new NetworkStream(socket, ownsSocket: false);
-        var req = Encoding.ASCII.GetBytes($"HEAD / HTTP/1.0\r\nHost: {Ipv4.Format(ip)}\r\nUser-Agent: LANORA/1.0\r\nConnection: close\r\n\r\n");
+        var req = Encoding.ASCII.GetBytes($"HEAD / HTTP/1.0\r\nHost: {Ipv4.Format(ip)}\r\nUser-Agent: {Native.NativeScripts.UserAgent}\r\nConnection: close\r\n\r\n");
         await stream.WriteAsync(req, cts.Token).ConfigureAwait(false);
         var data = await ReadLimitedAsync(stream, cts.Token, (b, n) => IndexOf(b, n, "\r\n\r\n"u8) >= 0).ConfigureAwait(false);
         var text = Encoding.Latin1.GetString(data);
