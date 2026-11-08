@@ -430,4 +430,92 @@ public class ReviewRegressionTests
         Assert.Contains((byte)0xA0, probe);
         Assert.True(probe.AsSpan().IndexOf("public"u8) > 0);
     }
+
+    // ---------------- Follow-up review fixes ----------------
+
+    /// <summary>Adds a UDP observation with the same port number as an existing TCP one to the scan's only host.</summary>
+    private static async Task AddUdpObservation(Rig rig, string scanId, int port, string state)
+    {
+        await rig.Db.WriteAsync((c, tx) =>
+        {
+            var hostId = Db.Scalar<long>(c, tx, "SELECT id FROM scan_host WHERE scan_id=$s", ("$s", scanId));
+            Db.Exec(c, tx, """
+                INSERT INTO port_observation(scan_host_id, protocol, port, state, reason_code, method, observed_at, attempts)
+                VALUES ($h, 'udp', $p, $st, NULL, 'udp_probe', $t, 1)
+                """, ("$h", hostId), ("$p", port), ("$st", state), ("$t", Clock.NowIso()));
+        });
+    }
+
+    [Fact]
+    public async Task Comparison_keeps_tcp_and_udp_ports_with_the_same_number_apart()
+    {
+        using var rig = new Rig(new FakeBackend());
+        var first = await rig.RunAsync(OfflineRequest(1, 2));
+        var second = await rig.RunAsync(OfflineRequest(1, 2));
+        // 1/tcp is open in both scans; 1/udp is closed in the first and open in the second.
+        await AddUdpObservation(rig, first, 1, PortState.Closed);
+        await AddUdpObservation(rig, second, 1, PortState.Open);
+
+        var cmp = rig.Store.Compare(second, first);   // threw "An item with the same key has already been added"
+        // Without a MAC the device is a new record in each scan (FR12), so the second scan's entry lists both ports as new.
+        var device = JsonSerializer.SerializeToElement(cmp, Json.Options).GetProperty("devices").EnumerateArray()
+            .Single(d => d.GetProperty("ip_after").ValueKind == JsonValueKind.String);
+        var opened = device.GetProperty("newly_opened").EnumerateArray().ToList();
+        Assert.Equal(2, opened.Count);
+        Assert.Equal(1, opened[0].GetInt32());          // TCP stays a plain number
+        Assert.Equal("1/udp", opened[1].GetString());   // UDP is marked and no longer collides with 1/tcp
+
+        // The Excel report renders the mixed TCP/UDP change list.
+        var data = new ReportBuilder(rig.Store, new Ruleset(), rig.Orch).Build(second, "en")!;
+        Assert.True(XlsxReport.Render(data).Length > 1000);
+    }
+
+    [Fact]
+    public async Task Late_active_state_write_does_not_overwrite_the_final_state()
+    {
+        using var rig = new Rig(new FakeBackend());
+        var id = await rig.RunAsync(OfflineRequest(1));
+        Assert.Equal(ScanStates.Completed, rig.Store.GetSummary(id)!.State);
+
+        // Cancel's fire-and-forget "cancelling" write can arrive after the runner has saved the final state.
+        await rig.Store.SetStateAsync(id, ScanStates.Cancelling);
+        await rig.Store.SetStateAsync(id, ScanStates.Running);
+        Assert.Equal(ScanStates.Completed, rig.Store.GetSummary(id)!.State);
+        Assert.True(await rig.Store.DeleteScanAsync(id));
+    }
+
+    [Fact]
+    public async Task Cancelled_advanced_scan_still_classifies_found_devices()
+    {
+        var waiting = 0;
+        var backend = new FakeBackend
+        {
+            // 9100 open marks a printer; the scan is cancelled while port 2 is still being probed (before enrichment).
+            Tcp = async (_, port, ct) =>
+            {
+                if (port == 9100) return new ProbeResult(PortState.Open, "syn_ack", 1);
+                if (port == 2) { Interlocked.Increment(ref waiting); await Task.Delay(Timeout.Infinite, ct); }
+                return new ProbeResult(PortState.Closed, "conn_refused", 1);
+            },
+        };
+        using var rig = new Rig(backend);
+        var id = await rig.RunAsync(OfflineRequest(9100, 2), async scanId =>
+        {
+            var until = DateTime.UtcNow.AddSeconds(10);
+            while (Volatile.Read(ref waiting) < 1 && DateTime.UtcNow < until) await Task.Delay(20);
+            await Task.Delay(200);
+            rig.Orch.Cancel(scanId);
+        });
+
+        Assert.Equal(ScanStates.Cancelled, rig.Store.GetSummary(id)!.State);
+        Assert.Equal("printer", Assert.Single(rig.Store.GetHosts(id)).TypeGuess);
+    }
+
+    [Fact]
+    public void Advanced_invalid_target_has_its_own_error_code()
+    {
+        var ex = Assert.Throws<ApiException>(() => AdvancedScanValidator.Build(
+            new AdvancedScanRequest { Targets = { "http://example.com" }, Authorized = true }, Adapter(), NoDns));
+        Assert.Equal("ADV_TARGET_INVALID", ex.Code);
+    }
 }

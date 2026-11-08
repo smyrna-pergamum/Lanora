@@ -29,7 +29,9 @@ public sealed class ScanOrchestrator
     private readonly Database _db;
     private readonly Native.NativeAdvancedEngine _native;
     private readonly object _gate = new();
+    private const int MaxIdempotencyKeys = 256;
     private readonly Dictionary<string, (string Hash, string ScanId)> _idempotency = new();
+    private readonly Queue<string> _idempotencyOrder = new();
     private readonly LinkedList<IScanJob> _recent = new();
     private IScanJob? _active;
     private bool _starting;
@@ -171,7 +173,7 @@ public sealed class ScanOrchestrator
             lock (_gate)
             {
                 _active = job;
-                if (key is not null) _idempotency[key] = (hash, id);
+                if (key is not null) RememberIdempotency(key, hash, id);
             }
             job.Runner = Task.Run(() => RunAdvancedAsync(job, adapter));
             AppLog.Info("scan", $"advanced scan {id} started: technique={plan.Technique} targets={plan.IpTargets.Count} external={plan.AnyExternal}");
@@ -197,8 +199,8 @@ public sealed class ScanOrchestrator
 
         try
         {
-            job.State = ScanStates.Running;
-            await _store.SetStateAsync(job.Id, ScanStates.Running).ConfigureAwait(false);
+            if (TryMarkRunning(job)) await _store.SetStateAsync(job.Id, ScanStates.Running).ConfigureAwait(false);
+            ct.ThrowIfCancellationRequested();
             var progress = new Progress<Native.NativeProgress>(p =>
             {
                 job.Percent = p.Percent; job.PhaseLabel = PhaseLabel(p.Phase);
@@ -233,6 +235,9 @@ public sealed class ScanOrchestrator
             var hostScores = new Dictionary<string, int?>();
             foreach (var h in hosts)
             {
+                // The engine classifies during enrichment; a scan stopped before that phase still gets a type estimate
+                // (Classify is repeatable and does not overwrite an existing OS estimate).
+                HostClassifier.Classify(h, job.Plan.OsDetection);
                 var findings = _risk.Evaluate(h);
                 var score = RiskEngine.ScoreHost(h, findings);
                 evaluated.Add(score);
@@ -389,7 +394,7 @@ public sealed class ScanOrchestrator
             lock (_gate)
             {
                 _active = job;
-                if (key is not null) _idempotency[key] = (hash, id);
+                if (key is not null) RememberIdempotency(key, hash, id);
             }
             job.Runner = Task.Run(() => RunAsync(job));
             AppLog.Info("scan", $"scan {id} started: profile={plan.ProfileId} targets={plan.Targets.Targets.Count} ports={plan.Ports.Count}");
@@ -405,12 +410,19 @@ public sealed class ScanOrchestrator
     public bool Cancel(string scanId)
     {
         IScanJob? job;
-        lock (_gate) job = _active?.Id == scanId ? _active : null;
+        lock (_gate)
+        {
+            job = _active?.Id == scanId ? _active : null;
+            if (job is not null)
+            {
+                if (!ScanStates.IsActive(job.State)) return true;
+                job.UserCancelled = true;
+                job.StopReason ??= "USER_CANCELLED";
+                // Under the same lock as TryMarkRunning, so a starting runner cannot overwrite "cancelling" with "running".
+                job.State = ScanStates.Cancelling;
+            }
+        }
         if (job is null) return _store.GetSummary(scanId) is not null;
-        if (!ScanStates.IsActive(job.State)) return true;
-        job.UserCancelled = true;
-        job.StopReason ??= "USER_CANCELLED";
-        job.State = ScanStates.Cancelling;
         job.Events.Publish("phase_changed", job.Progress());
         _ = _store.SetStateAsync(job.Id, ScanStates.Cancelling);
         job.Cts.Cancel();
@@ -423,7 +435,28 @@ public sealed class ScanOrchestrator
         lock (_gate) job = _active;
         if (job?.Runner is null || !ScanStates.IsActive(job.State)) return;
         Abort(job, "APP_EXIT");
-        await Task.WhenAny(job.Runner, Task.Delay(TimeSpan.FromSeconds(8))).ConfigureAwait(false);
+        // The runner still saves the results gathered so far after cancellation; give it time so the database is not
+        // closed underneath it (8 s was too short for scans with many devices).
+        var done = await Task.WhenAny(job.Runner, Task.Delay(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
+        if (done != job.Runner) AppLog.Warn("shutdown", $"scan {job.Id} did not finish saving within 30 s");
+    }
+
+    /// <summary>Stores an idempotency key; only the newest keys are kept so the map does not grow while the app stays open. Call under _gate.</summary>
+    private void RememberIdempotency(string key, string hash, string scanId)
+    {
+        if (_idempotency.TryAdd(key, (hash, scanId))) _idempotencyOrder.Enqueue(key);
+        while (_idempotencyOrder.Count > MaxIdempotencyKeys) _idempotency.Remove(_idempotencyOrder.Dequeue());
+    }
+
+    /// <summary>queued → running, unless the job was already cancelled before its runner started.</summary>
+    private bool TryMarkRunning(IScanJob job)
+    {
+        lock (_gate)
+        {
+            if (job.State != ScanStates.Queued) return false;
+            job.State = ScanStates.Running;
+            return true;
+        }
     }
 
     private static void Abort(IScanJob job, string reason)
@@ -454,8 +487,8 @@ public sealed class ScanOrchestrator
 
         try
         {
-            job.State = ScanStates.Running;
-            await _store.SetStateAsync(job.Id, ScanStates.Running).ConfigureAwait(false);
+            if (TryMarkRunning(job)) await _store.SetStateAsync(job.Id, ScanStates.Running).ConfigureAwait(false);
+            ct.ThrowIfCancellationRequested();
             await DiscoveryAsync(job, hosts, rate, ct).ConfigureAwait(false);
             var alive = hosts.Values.Where(h => h.Alive).OrderBy(h => h.Ip).ToList();
             job.HostsResponded = alive.Count;
@@ -591,8 +624,9 @@ public sealed class ScanOrchestrator
             new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, plan.Rate.GlobalConcurrency / 4), CancellationToken = ct },
             async (h, token) =>
             {
-                foreach (var port in DiscoveryPorts)
+                for (var i = 0; i < DiscoveryPorts.Length; i++)
                 {
+                    var port = DiscoveryPorts[i];
                     if (Interlocked.Increment(ref job.Attempts) > plan.MaxAttempts)
                     {
                         Interlocked.Decrement(ref job.Attempts);
@@ -605,6 +639,8 @@ public sealed class ScanOrchestrator
                     if (r.State is PortState.Open or PortState.Closed)
                     {
                         lock (h) h.DiscoveryEvidence.Add("tcp");
+                        // The remaining discovery ports are skipped; count them as done so the phase reaches 100%.
+                        Interlocked.Add(ref job.PhaseDone, DiscoveryPorts.Length - 1 - i);
                         break;
                     }
                 }

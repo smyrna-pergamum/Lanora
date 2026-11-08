@@ -89,7 +89,7 @@ check('No third-party engine name in UI texts', () => {
 });
 
 check('Error codes from advanced scan have translations', () => {
-  for (const code of ['AUTHORIZATION_REQUIRED', 'HOST_RESOLVE_FAILED', 'TARGET_RESERVED', 'USE_ADVANCED_SCAN', 'PORTS_REQUIRED'])
+  for (const code of ['AUTHORIZATION_REQUIRED', 'HOST_RESOLVE_FAILED', 'TARGET_RESERVED', 'USE_ADVANCED_SCAN', 'PORTS_REQUIRED', 'ADV_TARGET_INVALID'])
     assert(M['err_' + code], 'missing err_' + code);
 });
 

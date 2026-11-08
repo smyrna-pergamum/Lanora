@@ -205,7 +205,7 @@ public static class XlsxReport
 
     private static string? Str(JsonElement e, string p) => e.TryGetProperty(p, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
     private static int? Int(JsonElement e, string p) => e.TryGetProperty(p, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : null;
-    private static string Ports(JsonElement e, string p) => string.Join(", ", e.GetProperty(p).EnumerateArray().Select(x => x.GetInt32()));
+    private static string Ports(JsonElement e, string p) => string.Join(", ", e.GetProperty(p).EnumerateArray().Select(x => x.ValueKind == JsonValueKind.Number ? x.GetInt32().ToString(System.Globalization.CultureInfo.InvariantCulture) : x.GetString()));
 
     private static string SheetName(string name)
     {
