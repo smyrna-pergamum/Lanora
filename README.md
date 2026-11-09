@@ -44,7 +44,7 @@ LANORA is a free, open-source network scanner for home and small-office Windows 
 
 ## Quick start
 
-1. Download `Lanora-1.2.1-Setup-x64.exe` (installer) or `Lanora-1.2.1-Portable-x64.zip` (no installation) from the [latest release](https://github.com/smyrna-pergamum/Lanora/releases/latest).
+1. Download `Lanora-1.3.0-Setup-x64.exe` (installer) or `Lanora-1.3.0-Portable-x64.zip` (no installation) from the [latest release](https://github.com/smyrna-pergamum/Lanora/releases/latest).
 2. Run it. The installer installs for the current user only and needs no administrator rights or .NET runtime.
 3. LANORA sits in the system tray and opens its interface in your default browser. Click **New scan**.
 
@@ -98,7 +98,7 @@ LANORA was built to the technical specification's **MVP** scope and the "Network
 
 ## Running
 
-Run the installer or the portable `Lanora.exe` from the [latest release](https://github.com/smyrna-pergamum/Lanora/releases/latest). A local build is at `dist/Lanora-1.2.1-win-x64/Lanora.exe`. No installation and no .NET runtime are required (self-contained, win-x64).
+Run the installer or the portable `Lanora.exe` from the [latest release](https://github.com/smyrna-pergamum/Lanora/releases/latest). A local build is at `dist/Lanora-1.3.0-win-x64/Lanora.exe`. No installation and no .NET runtime are required (self-contained, win-x64).
 
 - The application sits in the system tray and opens the interface in the default browser.
 - If you close the interface, double-click the tray icon or choose **Open interface**. Reloading the page ends the session for security reasons; open it from the tray again.
@@ -112,14 +112,14 @@ Data: `%LOCALAPPDATA%\Lanora\` (`lanora.db`, `logs\`, `backups\`).
 ```
 dotnet test
 node tests/frontend/frontend-checks.cjs
-dotnet publish src/Lanora/Lanora.csproj -c Release -o dist/Lanora-1.2.1-win-x64
+dotnet publish src/Lanora/Lanora.csproj -c Release -o dist/Lanora-1.3.0-win-x64
 ```
 
 `packaging/Build-Windows.ps1` also publishes the console launcher (`src/Lanora.Launcher`, NativeAOT; needs the Visual Studio C++ build tools) and copies it next to `Lanora.exe` as `lanora.com`. Windows runs `.com` before `.exe` for the same name, so `lanora` in a terminal starts the launcher, which runs `Lanora.exe --cli ...`, streams its output and returns its exit code.
 
 Requirements: .NET 10 SDK (Windows). Development flags: `--no-browser`, `--data-dir <folder>`, `--dev-url-file <file>` (Debug builds only: writes the launch URL to a file for testing).
 
-## Unreleased
+## 1.3.0 — Command line
 
 - **Command line:** `lanora scan`, `interfaces`, `history`, `show` with text, JSON and CSV output, Ctrl+C cancellation and exit codes for scripts. The installer can add `lanora` to PATH.
 - Scans started from the command line and from the window can run at the same time: at startup only scans of a process that no longer runs are marked "interrupted" (database schema 3 records the owning process).
