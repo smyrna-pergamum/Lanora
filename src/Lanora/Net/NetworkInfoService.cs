@@ -33,7 +33,7 @@ public sealed record AdapterInfo
 }
 
 /// <summary>FR01: Active adapters, real CIDR, gateway and selectable ranges.</summary>
-public sealed partial class NetworkInfoService
+public partial class NetworkInfoService
 {
     [GeneratedRegex(@"vpn|wireguard|openvpn|tap-|tun\b|tailscale|zerotier|nordlynx|anyconnect|fortinet|forticlient|globalprotect|pangp|juniper|sonicwall|wintun|proton", RegexOptions.IgnoreCase)]
     private static partial Regex VpnPattern();
@@ -41,7 +41,7 @@ public sealed partial class NetworkInfoService
     [GeneratedRegex(@"virtual|hyper-v|vethernet|vmware|virtualbox|vbox|wsl|docker|loopback|bluetooth|parallels|qemu|kvm", RegexOptions.IgnoreCase)]
     private static partial Regex VirtualPattern();
 
-    public IReadOnlyList<AdapterInfo> GetAdapters()
+    public virtual IReadOnlyList<AdapterInfo> GetAdapters()
     {
         var defaultIf = SafeDefaultRoute();
         var list = new List<AdapterInfo>();

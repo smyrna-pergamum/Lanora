@@ -9,7 +9,7 @@ namespace Lanora.Data;
 /// </summary>
 public sealed class Database : IDisposable
 {
-    public const int SchemaVersion = 2;
+    public const int SchemaVersion = 3;
     private readonly SemaphoreSlim _writeLock = new(1, 1);
     private readonly string _connectionString;
     private readonly AppPaths _paths;
@@ -89,8 +89,14 @@ public sealed class Database : IDisposable
                 return;
             }
 
-            var n = Db.Exec(c, null, "UPDATE scan SET state='interrupted', reason_code='APP_RESTARTED', ended_at=COALESCE(ended_at, $now) WHERE state IN ('queued','running','cancelling')",
-                ("$now", Clock.NowIso()));
+            // The window app and the command line can use the same database at the same time, so only scans whose
+            // owning process is gone are interrupted; a scan still running in the other process is left alone.
+            var active = Db.Query(c, null, "SELECT id, owner FROM scan WHERE state IN ('queued','running','cancelling')",
+                r => (Id: r.Str("id")!, Owner: r.Str("owner")));
+            var n = 0;
+            foreach (var (id, owner) in active.Where(s => !ProcessOwner.IsAlive(s.Owner)))
+                n += Db.Exec(c, null, "UPDATE scan SET state='interrupted', reason_code='APP_RESTARTED', ended_at=COALESCE(ended_at, $now) WHERE id=$id",
+                    ("$now", Clock.NowIso()), ("$id", id));
             if (n > 0) AppLog.Warn("startup", $"{n} unfinished scan(s) marked interrupted");
         }
     }
@@ -113,6 +119,11 @@ public sealed class Database : IDisposable
                 ALTER TABLE scan_host ADD COLUMN trace_json TEXT;
                 ALTER TABLE port_observation ADD COLUMN scripts_json TEXT;
                 """);
+        }
+        if (from < 3)
+        {
+            // Process that runs the scan ("pid:start-ticks"); see ProcessOwner.
+            Db.Exec(c, tx, "ALTER TABLE scan ADD COLUMN owner TEXT;");
         }
         Db.Exec(c, tx, "DELETE FROM schema_info; INSERT INTO schema_info(version) VALUES ($v);", ("$v", SchemaVersion));
     }

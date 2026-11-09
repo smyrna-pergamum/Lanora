@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Console launcher for the command line. It is published with NativeAOT (small, no .NET runtime needed) and shipped
+    next to Lanora.exe as "lanora.com": Windows runs .COM before .EXE, so typing "lanora" in cmd or PowerShell starts
+    this console program, while the Start menu still opens the window app.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>lanora</AssemblyName>
+    <RootNamespace>Lanora.Launcher</RootNamespace>
+    <Version>1.2.1</Version>
+    <Product>LANORA</Product>
+    <Description>LANORA command line</Description>
+    <ApplicationIcon>..\Lanora\Assets\Lanora.ico</ApplicationIcon>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishAot>true</PublishAot>
+    <OptimizationPreference>Size</OptimizationPreference>
+    <StackTraceSupport>false</StackTraceSupport>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+</Project>

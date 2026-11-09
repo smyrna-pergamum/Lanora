@@ -22,14 +22,14 @@ public sealed class ScanStore
             var scope = DeviceRegistry.EnsureScope(c, tx, plan.Adapter);
             Db.Exec(c, tx, """
                 INSERT INTO scan(id, network_scope_id, state, started_at, profile_id, profile_snapshot, target_snapshot, interface_snapshot,
-                                 rate_snapshot, engine_version, ruleset_version, addresses_probed)
-                VALUES ($id,$scope,'queued',$t,$p,$ps,$ts,$is,$rs,$e,$r,$n)
+                                 rate_snapshot, engine_version, ruleset_version, addresses_probed, owner)
+                VALUES ($id,$scope,'queued',$t,$p,$ps,$ts,$is,$rs,$e,$r,$n,$owner)
                 """,
                 ("$id", scanId), ("$scope", scope), ("$t", Clock.NowIso()), ("$p", plan.ProfileId),
                 ("$ps", Json.Serialize(new { profile_id = plan.ProfileId, port_list_version = plan.PortListVersion, protocol = "tcp", method = "tcp_connect", ports = plan.Ports, timeout_ms = plan.TimeoutMs, retries = plan.Retries, max_attempts = plan.MaxAttempts })),
                 ("$ts", Json.Serialize(new { targets = plan.Targets.Targets.Select(Ipv4.Format), excluded = plan.Targets.Excluded, local_ip = Ipv4.Format(plan.Targets.LocalIp), gateway = plan.Targets.Gateway is { } g ? Ipv4.Format(g) : null })),
                 ("$is", Json.Serialize(new { id = plan.Adapter.Id, name = plan.Adapter.Name, description = plan.Adapter.Description, kind = plan.Adapter.Kind, ip = plan.Adapter.Ip, prefix = plan.Adapter.PrefixLength, network = plan.Adapter.NetworkCidr, gateway = plan.Adapter.Gateway })),
-                ("$rs", Json.Serialize(plan.Rate)), ("$e", engineVersion), ("$r", rulesetVersion), ("$n", plan.Targets.Targets.Count));
+                ("$rs", Json.Serialize(plan.Rate)), ("$e", engineVersion), ("$r", rulesetVersion), ("$n", plan.Targets.Targets.Count), ("$owner", ProcessOwner.Current));
             return scope;
         });
 
@@ -46,14 +46,14 @@ public sealed class ScanStore
 
             Db.Exec(c, tx, """
                 INSERT INTO scan(id, network_scope_id, state, started_at, profile_id, profile_snapshot, target_snapshot, interface_snapshot,
-                                 rate_snapshot, engine_version, ruleset_version, addresses_probed)
-                VALUES ($id,$scope,'queued',$t,'advanced',$ps,$ts,$is,$rs,$e,$r,$n)
+                                 rate_snapshot, engine_version, ruleset_version, addresses_probed, owner)
+                VALUES ($id,$scope,'queued',$t,'advanced',$ps,$ts,$is,$rs,$e,$r,$n,$owner)
                 """,
                 ("$id", scanId), ("$scope", scope), ("$t", Clock.NowIso()),
                 ("$ps", Json.Serialize(optionSummary)),
                 ("$ts", Json.Serialize(new { targets = plan.Targets.Select(t => new { input = t.Input, resolved = t.Resolved, local = t.IsLocal, external = t.IsExternal, hostname = t.IsHostname }), any_external = plan.AnyExternal })),
                 ("$is", Json.Serialize(adapter is null ? new { kind = "advanced", external = plan.AnyExternal } : new { id = adapter.Id, name = adapter.Name, kind = adapter.Kind, ip = adapter.Ip, network = adapter.NetworkCidr, gateway = adapter.Gateway, external = plan.AnyExternal } as object)),
-                ("$rs", Json.Serialize(new { engine = "advanced" })), ("$e", engineVersion), ("$r", rulesetVersion), ("$n", plan.Targets.Count));
+                ("$rs", Json.Serialize(new { engine = "advanced" })), ("$e", engineVersion), ("$r", rulesetVersion), ("$n", plan.Targets.Count), ("$owner", ProcessOwner.Current));
             return scope;
         });
 

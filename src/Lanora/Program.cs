@@ -35,6 +35,10 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        // Command line mode (started by the "lanora" console launcher): no tray, no browser, no single-instance lock,
+        // so it can run next to an open LANORA window.
+        if (args.Length > 0 && args[0] == "--cli") return Cli.CliRunner.RunConsole(args[1..]);
+
         var opts = LaunchOptions.Parse(args);
         var sid = WindowsIdentity.GetCurrent().User?.Value ?? Environment.UserName;
         var suffix = opts.DataDir is null ? sid : sid + "." + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(opts.DataDir)))[..12];
