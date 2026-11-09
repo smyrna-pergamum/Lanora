@@ -20,7 +20,9 @@
   <a href="https://github.com/smyrna-pergamum/Lanora/releases/latest"><b>⬇ Download for Windows</b></a>
   &nbsp;·&nbsp; <a href="#features">Features</a>
   &nbsp;·&nbsp; <a href="#quick-start">Quick start</a>
+  &nbsp;·&nbsp; <a href="#command-line">Command line</a>
   &nbsp;·&nbsp; <a href="#privacy">Privacy</a>
+  &nbsp;·&nbsp; <a href="#roadmap">Roadmap</a>
 </p>
 
 ![LANORA overview: network security indicator, connection view and device list](docs/screenshot-overview.png)
@@ -54,7 +56,7 @@ LANORA is a free, open-source network scanner for home and small-office Windows 
 
 ## Command line
 
-The installer adds the `lanora` command to PATH (option in the setup wizard; open a new terminal afterwards). In the portable ZIP, run it from the folder as `.lanora`.
+The installer adds the `lanora` command to PATH (option in the setup wizard; open a new terminal afterwards). In the portable ZIP, run it from the folder as `.\lanora`.
 
 ```
 lanora scan                                   # scan the suggested range of the default adapter
@@ -74,6 +76,8 @@ lanora help
 - Exit codes: `0` completed, `1` error, `2` invalid usage or target, `3` findings at the `--fail-on` level, `4` cancelled or partial result.
 - The same safety rules apply as in the window: only private addresses of the directly connected network, at most 256 addresses per scan. Command line output is in English.
 
+> **About `lanora.com`:** the `lanora` command is a small program file named `lanora.com` next to `Lanora.exe` in the installation folder. It is not a website. Windows runs `.com` before `.exe` for the same name, so typing `lanora` in a terminal starts the console tool, while the Start menu still opens the LANORA window.
+
 ## Privacy
 
 - The interface listens only on `127.0.0.1`. Nothing is reachable from other computers.
@@ -83,6 +87,29 @@ lanora help
 ## Responsible use
 
 Only scan networks and systems that you own or are authorized to test. The standard scan is limited to your directly connected private network. Hostnames and external targets are scanned only by the advanced scan, and only after you tick the authorization checkbox.
+
+## Roadmap
+
+Planned features. Plans can change; ideas and votes are welcome in [Issues](https://github.com/smyrna-pergamum/Lanora/issues).
+
+**For everyday users**
+
+- [ ] **Device tags:** in addition to the existing names and notes, tags such as "living room" or "work".
+- [ ] **New device alerts:** a notification when a device that was never seen before joins the network.
+- [ ] **Scheduled scans:** daily or weekly scans, automatically compared with the previous result.
+- [ ] **Change summary:** a plain-language summary such as "new device", "new open port" or "important risk fixed".
+- [ ] **Router guide:** step-by-step advice for the risks found, per router brand and model.
+- [ ] **Better device recognition:** combine the MAC vendor with DHCP, mDNS and NetBIOS names and your own corrections.
+- [ ] **Export and backup:** encrypted backups, portable reports and moving scans to another computer.
+
+**For developers and advanced users**
+
+- [x] **Command line** with JSON and CSV output (1.3.0).
+- [ ] **Read-only local API** for using results in other tools.
+- [ ] **Scan profile editor:** save named profiles with port lists and timeouts.
+- [ ] **IPv6 support** for device discovery and scan scope.
+- [ ] **Diagnostics package:** with your permission, collect error logs into one file, without sensitive scan data.
+- [ ] **Installer tests in CI:** automatic install, upgrade and uninstall checks on Windows.
 
 ## Feedback and contributing
 
