@@ -10,7 +10,7 @@
     <AssemblyName>Lanora</AssemblyName>
     <ApplicationIcon>Assets\Lanora.ico</ApplicationIcon>
     <RootNamespace>Lanora</RootNamespace>
-    <Version>1.2.1</Version>
+    <Version>1.3.0</Version>
     <Product>LANORA</Product>
     <Description>Local Area Network Observation &amp; Risk Assessment</Description>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
