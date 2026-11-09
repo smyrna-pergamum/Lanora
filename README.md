@@ -39,6 +39,7 @@ LANORA is a free, open-source network scanner for home and small-office Windows 
     - traceroute, device names via reverse DNS and operating system estimates
     - safe service checks (`http-title`, TLS versions, SSH banner, anonymous FTP), detection only
 - **PDF and Excel reports.**
+- **Command line:** `lanora scan` in Command Prompt or PowerShell prints the result as text, JSON or CSV (see [Command line](#command-line)).
 - **English, Turkish and German** interface, reports and guide.
 
 ## Quick start
@@ -50,6 +51,28 @@ LANORA is a free, open-source network scanner for home and small-office Windows 
 > **Unsigned build:** the current release is not code-signed yet, so Windows SmartScreen may warn about an unknown publisher. You can check the downloads against `SHA256SUMS.txt` in the release.
 
 **Requirements:** Windows 10 or 11, x64.
+
+## Command line
+
+The installer adds the `lanora` command to PATH (option in the setup wizard; open a new terminal afterwards). In the portable ZIP, run it from the folder as `.lanora`.
+
+```
+lanora scan                                   # scan the suggested range of the default adapter
+lanora scan 192.168.1.0/24 --profile standard
+lanora scan 192.168.1.20-40 --ports 22,80,443,8000-8010
+lanora scan 192.168.1.1 --format json > result.json
+lanora scan --format csv > result.csv
+lanora scan --fail-on high                    # exit code 3 if a high-priority finding is found
+lanora interfaces                             # adapters that can be scanned
+lanora history                                # saved scans
+lanora show 3f9c1a2b                          # print a saved scan again (text, --json or --csv)
+lanora help
+```
+
+- Scans are saved to the same history as the LANORA window, so you can open them there for details and PDF/Excel reports. The command line works while the window is open.
+- Press **Ctrl+C** to cancel a running scan; the results found so far are kept. Press it again to stop immediately.
+- Exit codes: `0` completed, `1` error, `2` invalid usage or target, `3` findings at the `--fail-on` level, `4` cancelled or partial result.
+- The same safety rules apply as in the window: only private addresses of the directly connected network, at most 256 addresses per scan. Command line output is in English.
 
 ## Privacy
 
@@ -92,7 +115,14 @@ node tests/frontend/frontend-checks.cjs
 dotnet publish src/Lanora/Lanora.csproj -c Release -o dist/Lanora-1.2.1-win-x64
 ```
 
+`packaging/Build-Windows.ps1` also publishes the console launcher (`src/Lanora.Launcher`, NativeAOT; needs the Visual Studio C++ build tools) and copies it next to `Lanora.exe` as `lanora.com`. Windows runs `.com` before `.exe` for the same name, so `lanora` in a terminal starts the launcher, which runs `Lanora.exe --cli ...`, streams its output and returns its exit code.
+
 Requirements: .NET 10 SDK (Windows). Development flags: `--no-browser`, `--data-dir <folder>`, `--dev-url-file <file>` (Debug builds only: writes the launch URL to a file for testing).
+
+## Unreleased
+
+- **Command line:** `lanora scan`, `interfaces`, `history`, `show` with text, JSON and CSV output, Ctrl+C cancellation and exit codes for scripts. The installer can add `lanora` to PATH.
+- Scans started from the command line and from the window can run at the same time: at startup only scans of a process that no longer runs are marked "interrupted" (database schema 3 records the owning process).
 
 ## 1.2.1 — Bug fixes
 

@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Lanora/Lanora.csproj" />
+    <Project Path="src/Lanora.Launcher/Lanora.Launcher.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Lanora.Tests/Lanora.Tests.csproj" />

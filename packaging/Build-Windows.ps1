@@ -43,6 +43,20 @@ if (Test-Path -LiteralPath $publish) { Remove-Item -LiteralPath $publish -Recurs
 New-Item -ItemType Directory -Force -Path $publish, $output | Out-Null
 & dotnet publish $project -c Release -r win-x64 --self-contained true -o $publish --nologo
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed: $LASTEXITCODE" }
+
+# Console launcher for the "lanora" command (NativeAOT, needs the Visual Studio C++ build tools). It is published to its
+# own folder first: as "lanora.exe" it would overwrite Lanora.exe (file names are case-insensitive on Windows).
+$launcherProject = Join-Path $root 'src\Lanora.Launcher\Lanora.Launcher.csproj'
+[xml]$launcherXml = Get-Content -LiteralPath $launcherProject
+$launcherVersion = [string](@($launcherXml.Project.PropertyGroup | Where-Object { $_.SelectSingleNode('Version') })[0].Version)
+if ($launcherVersion -ne $version) { throw "Launcher version $launcherVersion does not match LANORA $version." }
+$launcherOut = Join-Path $root 'dist\launcher'
+if (Test-Path -LiteralPath $launcherOut) { Remove-Item -LiteralPath $launcherOut -Recurse -Force }
+$vsInstaller = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
+if ((Test-Path -LiteralPath $vsInstaller) -and -not (Get-Command vswhere.exe -ErrorAction SilentlyContinue)) { $env:PATH = "$vsInstaller;$env:PATH" }
+& dotnet publish $launcherProject -c Release -r win-x64 -o $launcherOut --nologo
+if ($LASTEXITCODE -ne 0) { throw "launcher publish failed: $LASTEXITCODE" }
+Copy-Item -LiteralPath (Join-Path $launcherOut 'lanora.exe') -Destination (Join-Path $publish 'lanora.com') -Force
 Copy-Item -LiteralPath (Join-Path $root 'README.md'), (Join-Path $root 'THIRD-PARTY-NOTICES.md') -Destination $publish
 $license = Join-Path $root 'LICENSE'
 if (Test-Path -LiteralPath $license) { Copy-Item -LiteralPath $license -Destination $publish }
@@ -56,6 +70,9 @@ try {
         $env:LANORA_TIMESTAMP_URL = $TimestampUrl
         $env:LANORA_SIGNTOOL = $SignToolPath
         & (Join-Path $PSScriptRoot 'Sign-File.ps1') -FilePath (Join-Path $publish 'Lanora.exe')
+        # The launcher is signed under its .exe name (signtool picks the signature format by file type) and copied again.
+        & (Join-Path $PSScriptRoot 'Sign-File.ps1') -FilePath (Join-Path $launcherOut 'lanora.exe')
+        Copy-Item -LiteralPath (Join-Path $launcherOut 'lanora.exe') -Destination (Join-Path $publish 'lanora.com') -Force
         $signScript = Join-Path $PSScriptRoot 'Sign-File.ps1'
         # $f and $q are expanded by Inno Setup, not by PowerShell.
         $signCommand = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File $q' + $signScript + '$q -FilePath $f'

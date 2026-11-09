@@ -132,6 +132,36 @@ public static class Clock
     public static DateTimeOffset Parse(string s) => DateTimeOffset.Parse(s, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal);
 }
 
+/// <summary>
+/// Identifies the process that runs a scan as "pid:start-time-ticks". The start time guards against a reused process id,
+/// so a scan of a crashed process is not mistaken for one that is still running.
+/// </summary>
+public static class ProcessOwner
+{
+    public static readonly string Current = Describe(System.Diagnostics.Process.GetCurrentProcess());
+
+    private static string Describe(System.Diagnostics.Process p) =>
+        $"{p.Id}:{p.StartTime.ToUniversalTime().Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+
+    /// <summary>True only if the owner is a process that is still running. Unknown or malformed owners count as gone.</summary>
+    public static bool IsAlive(string? owner)
+    {
+        if (owner is null) return false;
+        if (owner == Current) return true;
+        var parts = owner.Split(':');
+        if (parts.Length != 2 || !int.TryParse(parts[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var pid)) return false;
+        try
+        {
+            using var p = System.Diagnostics.Process.GetProcessById(pid);
+            return Describe(p) == owner;
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            return false; // not running, or its start time cannot be read
+        }
+    }
+}
+
 /// <summary>Limits untrusted text (banners, device names) and strips control characters (SEC05).</summary>
 public static class SafeText
 {
