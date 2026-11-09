@@ -11,9 +11,9 @@ Install [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) and
 The script reads the version from the project, publishes a self-contained x64
 application and creates these files in `dist/installer/`:
 
-- `Lanora-1.3.0-Setup-x64.exe`: a per-user installer with Start menu entry,
+- `Lanora-1.3.1-Setup-x64.exe`: a per-user installer with Start menu entry,
   optional desktop shortcut and uninstall entry.
-- `Lanora-1.3.0-Portable-x64.zip`: the same published app without an installer.
+- `Lanora-1.3.1-Portable-x64.zip`: the same published app without an installer.
 - `SHA256SUMS.txt`: SHA-256 checksums of those two files.
 
 No .NET installation is required on the user's machine. Close LANORA through

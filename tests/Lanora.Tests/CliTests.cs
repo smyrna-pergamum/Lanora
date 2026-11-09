@@ -11,6 +11,8 @@ namespace Lanora.Tests;
 public class CliTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "lanora-cli-" + Guid.NewGuid().ToString("N"));
+    // Never the real ExitRequest name: setting that would close a LANORA running on the developer's machine.
+    private readonly string _exitEvent = @"Local\Lanora.Test.ExitRequest." + Guid.NewGuid().ToString("N");
 
     public void Dispose()
     {
@@ -68,7 +70,7 @@ public class CliTests : IDisposable
             Rate = new RateSettings { NewConnectionsPerSecond = 1000 },
         });
         var runner = new CliRunner(stdout, stderr, stdin,
-            _ => new CliEnvironment(new AppPaths(_dir), new FakeNetwork(Adapter()), backend ?? new FakeBackend(), catalog));
+            _ => new CliEnvironment(new AppPaths(_dir), new FakeNetwork(Adapter()), backend ?? new FakeBackend(), catalog, _exitEvent));
         var code = await runner.RunAsync(args);
         return (code, stdout.ToString(), stderr.ToString());
     }
@@ -207,6 +209,53 @@ public class CliTests : IDisposable
         var (_, output, err) = await Run(slow, input, "scan", "192.168.77.20", "--ports", "445", "--progress");
         Assert.Contains("\r[", err);
         Assert.DoesNotContain("\r[", output);
+    }
+
+    // ---------------- Setup asks LANORA to exit (ExitRequest) ----------------
+
+    [Fact]
+    public async Task No_command_runs_while_setup_has_asked_lanora_to_exit()
+    {
+        using var request = ExitRequest.Open(_exitEvent);
+        request.Set();
+        var (code, output, err) = await Run(args: new[] { "scan", "192.168.77.20", "--ports", "445" });
+        Assert.Equal(CliRunner.ExitError, code);
+        Assert.Contains("being installed or removed", err);
+        Assert.Equal("", output);
+    }
+
+    [Fact]
+    public async Task Exit_request_during_a_scan_cancels_it_and_keeps_results()
+    {
+        using var request = ExitRequest.Open(_exitEvent);
+        var backend = new FakeBackend
+        {
+            // 3389 hangs; once it is being probed (445 is done), setup "asks LANORA to exit".
+            BeforeProbe = async (port, ct) =>
+            {
+                if (port != 3389) return;
+                await Task.Delay(300, ct);
+                request.Set();
+                await Task.Delay(Timeout.Infinite, ct);
+            },
+        };
+        var (code, output, err) = await Run(backend, null, "scan", "192.168.77.20", "--ports", "445,3389");
+        Assert.Equal(CliRunner.ExitIncomplete, code);
+        Assert.Contains("being installed or removed: cancelling", err);
+        Assert.Contains("cancelled", output);
+        Assert.Contains("445", output);
+    }
+
+    [Fact]
+    public void Exit_request_name_matches_the_installer_script()
+    {
+        var root = AppContext.BaseDirectory;
+        while (root is not null && !File.Exists(Path.Combine(root, "Lanora.slnx"))) root = Path.GetDirectoryName(root);
+        var iss = File.ReadAllText(Path.Combine(root!, "packaging", "Lanora.iss"));
+        Assert.Contains($"ExitEventName = '{ExitRequest.DefaultName}';", iss);
+        // Setup must close LANORA before installing and before uninstalling.
+        Assert.Contains("function PrepareToInstall", iss);
+        Assert.Contains("function InitializeUninstall", iss);
     }
 
     // ---------------- Adapter selection ----------------

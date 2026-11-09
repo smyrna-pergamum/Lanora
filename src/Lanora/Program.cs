@@ -39,6 +39,10 @@ internal static class Program
         // so it can run next to an open LANORA window.
         if (args.Length > 0 && args[0] == "--cli") return Cli.CliRunner.RunConsole(args[1..]);
 
+        // Setup or uninstall is running and has asked LANORA to exit: do not start now.
+        using var exitRequest = ExitRequest.Open();
+        if (exitRequest.WaitOne(0)) return 0;
+
         var opts = LaunchOptions.Parse(args);
         var sid = WindowsIdentity.GetCurrent().User?.Value ?? Environment.UserName;
         var suffix = opts.DataDir is null ? sid : sid + "." + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(opts.DataDir)))[..12];
@@ -78,7 +82,7 @@ internal static class Program
             return 1;
         }
 
-        using var tray = new TrayContext(host, opts, showEvent);
+        using var tray = new TrayContext(host, opts, showEvent, exitRequest);
         Application.Run(tray);
         return 0;
     }
@@ -91,9 +95,10 @@ internal sealed class TrayContext : ApplicationContext
     private readonly NotifyIcon _icon;
     private readonly SynchronizationContext _ui;
     private readonly RegisteredWaitHandle _wait;
+    private readonly RegisteredWaitHandle _exitWait;
     private bool _exiting;
 
-    public TrayContext(LanoraHost host, LaunchOptions opts, EventWaitHandle showEvent)
+    public TrayContext(LanoraHost host, LaunchOptions opts, EventWaitHandle showEvent, EventWaitHandle exitRequest)
     {
         _host = host;
         _opts = opts;
@@ -115,6 +120,12 @@ internal sealed class TrayContext : ApplicationContext
         _icon.DoubleClick += (_, _) => OpenUi();
 
         _wait = ThreadPool.RegisterWaitForSingleObject(showEvent, (_, _) => _ui.Post(_ => OpenUi(), null), null, Timeout.Infinite, false);
+        // Installer/uninstaller asks to exit: same clean path as the tray's Exit item.
+        _exitWait = ThreadPool.RegisterWaitForSingleObject(exitRequest, (_, _) => _ui.Post(async _ =>
+        {
+            AppLog.Info("tray", "exit requested by setup");
+            await ExitAsync();
+        }, null), null, Timeout.Infinite, true);
 
         OpenUi();
     }
@@ -157,6 +168,7 @@ internal sealed class TrayContext : ApplicationContext
         _exiting = true;
         _icon.Visible = false;
         _wait.Unregister(null);
+        _exitWait.Unregister(null);
         await _host.DisposeAsync();
         ExitThread();
     }
