@@ -47,8 +47,8 @@ The outputs are in `dist/installer/`:
 
 | File | Use |
 |---|---|
-| `Lanora-1.2.0-Setup-x64.exe` | Setup wizard, Start menu entry, optional desktop shortcut and uninstaller |
-| `Lanora-1.2.0-Portable-x64.zip` | Use without installation |
+| `Lanora-1.2.1-Setup-x64.exe` | Setup wizard, Start menu entry, optional desktop shortcut and uninstaller |
+| `Lanora-1.2.1-Portable-x64.zip` | Use without installation |
 | `SHA256SUMS.txt` | SHA-256 values of the downloadable files |
 
 The installer installs per user and does not require administrator rights. The
