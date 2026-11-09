@@ -9,7 +9,8 @@ using Lanora.Scanning;
 namespace Lanora.Cli;
 
 /// <summary>What the command line needs from the machine; tests replace the network and the scan backend.</summary>
-internal sealed record CliEnvironment(AppPaths Paths, NetworkInfoService Network, IScanBackend Backend, PortCatalog Catalog)
+internal sealed record CliEnvironment(AppPaths Paths, NetworkInfoService Network, IScanBackend Backend, PortCatalog Catalog,
+    string ExitEventName = ExitRequest.DefaultName)
 {
     public static CliEnvironment Default(string? dataDir) =>
         new(new AppPaths(dataDir), new NetworkInfoService(), new SocketBackend(), new PortCatalog());
@@ -31,7 +32,8 @@ internal sealed class CliRunner
     public CliRunner(TextWriter stdout, TextWriter stderr, TextReader? stdin, Func<string?, CliEnvironment>? environment = null)
     {
         _out = stdout;
-        _err = stderr;
+        // stderr is also written from the cancel watchers (thread pool), next to the progress line.
+        _err = TextWriter.Synchronized(stderr);
         _in = stdin;
         _environment = environment ?? CliEnvironment.Default;
     }
@@ -75,6 +77,14 @@ internal sealed class CliRunner
         }
         AppLog.Init(env.Paths.Logs);
 
+        // Setup or uninstall has asked LANORA to exit (see ExitRequest): do not start a scan now.
+        using var exitRequest = ExitRequest.Open(env.ExitEventName);
+        if (exitRequest.WaitOne(0))
+        {
+            await _err.WriteLineAsync("lanora: LANORA is being installed or removed. Try again when setup has finished.").ConfigureAwait(false);
+            return ExitError;
+        }
+
         try
         {
             if (opts.Command == "interfaces") return await InterfacesAsync(env, opts).ConfigureAwait(false);
@@ -91,7 +101,7 @@ internal sealed class CliRunner
                 var store = new ScanStore(db);
                 return opts.Command switch
                 {
-                    "scan" => await ScanAsync(env, db, store, opts).ConfigureAwait(false),
+                    "scan" => await ScanAsync(env, db, store, opts, exitRequest).ConfigureAwait(false),
                     "history" => await HistoryAsync(store, opts).ConfigureAwait(false),
                     "show" => await ShowAsync(store, opts).ConfigureAwait(false),
                     _ => ExitUsage,
@@ -150,7 +160,7 @@ internal sealed class CliRunner
 
     // ---------------- scan ----------------
 
-    private async Task<int> ScanAsync(CliEnvironment env, Database db, ScanStore store, CliOptions opts)
+    private async Task<int> ScanAsync(CliEnvironment env, Database db, ScanStore store, CliOptions opts, EventWaitHandle exitRequest)
     {
         var adapters = env.Network.GetAdapters();
         var (adapter, problem) = SelectAdapter(adapters, opts);
@@ -178,6 +188,11 @@ internal sealed class CliRunner
 
         using var stopWatching = new CancellationTokenSource();
         var watcher = WatchForCancelAsync(orch, id, stopWatching.Token);
+        // Setup or uninstall asks LANORA to exit: cancel cleanly so the results so far are saved before files are replaced.
+        var exitWait = ThreadPool.RegisterWaitForSingleObject(exitRequest, (_, _) =>
+        {
+            if (orch.Cancel(id)) _err.WriteLine("\rLANORA is being installed or removed: cancelling, results found so far are kept.");
+        }, null, Timeout.Infinite, true);
         var lastLine = 0;
         while (!job.Runner!.IsCompleted)
         {
@@ -186,6 +201,7 @@ internal sealed class CliRunner
         }
         await job.Runner.ConfigureAwait(false);
         stopWatching.Cancel();
+        exitWait.Unregister(null);
         if (lastLine > 0) await _err.WriteAsync("\r" + new string(' ', lastLine) + "\r").ConfigureAwait(false);
         _ = watcher; // reading stdin cannot be interrupted; the task ends with the process
 

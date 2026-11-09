@@ -133,6 +133,18 @@ public static class Clock
 }
 
 /// <summary>
+/// Session-wide "please exit" signal used by the installer and uninstaller (packaging/Lanora.iss). A tray application
+/// has no window, so Windows' Restart Manager cannot close it; setup sets this manual-reset event instead. Every
+/// LANORA process of the session exits cleanly (a running scan is cancelled and saved), and none starts while it is set.
+/// </summary>
+public static class ExitRequest
+{
+    public const string DefaultName = @"Local\Lanora.ExitRequest";
+
+    public static EventWaitHandle Open(string name = DefaultName) => new(false, EventResetMode.ManualReset, name);
+}
+
+/// <summary>
 /// Identifies the process that runs a scan as "pid:start-time-ticks". The start time guards against a reused process id,
 /// so a scan of a crashed process is not mistaken for one that is still running.
 /// </summary>

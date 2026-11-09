@@ -19,6 +19,15 @@ internal static class Program
             return 1;
         }
 
+        // An update that could not replace Lanora.exe (e.g. because LANORA was running) leaves an older Lanora.exe next to
+        // this launcher. An older version does not know --cli and would open the window instead, so stop with a clear message.
+        var mismatch = VersionMismatch(app);
+        if (mismatch is not null)
+        {
+            Console.Error.WriteLine("lanora: " + mismatch);
+            return 1;
+        }
+
         var start = new ProcessStartInfo(app)
         {
             UseShellExecute = false,
@@ -87,6 +96,20 @@ internal static class Program
                 try { Console.OutputEncoding = restoreOutput; } catch (IOException) { }
             }
         }
+    }
+
+    /// <summary>Error text if Lanora.exe is not the same LANORA version (major.minor.patch) as this launcher, otherwise null.</summary>
+    internal static string? VersionMismatch(string appPath)
+    {
+        var own = typeof(Program).Assembly.GetName().Version;
+        var info = FileVersionInfo.GetVersionInfo(appPath);
+        if (own is null || info.FileMajorPart == 0 && info.FileMinorPart == 0 && info.FileBuildPart == 0) return null; // unknown: do not block
+        var expected = $"{own.Major}.{own.Minor}.{own.Build}";
+        var found = $"{info.FileMajorPart}.{info.FileMinorPart}.{info.FileBuildPart}";
+        return expected == found ? null
+            : $"Lanora.exe is version {found}, but this command belongs to LANORA {expected}. "
+              + "The last update was not completed, probably because LANORA was running. "
+              + "Choose Exit in the LANORA tray menu and run the LANORA installer again.";
     }
 
     /// <summary>Copies bytes as they arrive (no line buffering, so the "\r" progress line updates in place).</summary>
