@@ -18,6 +18,7 @@
 
 <p align="center">
   <a href="https://github.com/smyrna-pergamum/Lanora/releases/latest"><b>⬇ Download for Windows</b></a>
+  &nbsp;·&nbsp; <a href="https://smyrna-pergamum.github.io/web-design-skills/skills/network-journey-webgl/example/"><b>Website</b></a>
   &nbsp;·&nbsp; <a href="#features">Features</a>
   &nbsp;·&nbsp; <a href="#quick-start">Quick start</a>
   &nbsp;·&nbsp; <a href="#command-line">Command line</a>
@@ -110,6 +111,10 @@ Planned features. Plans can change; ideas and votes are welcome in [Issues](http
 - [ ] **IPv6 support** for device discovery and scan scope.
 - [ ] **Diagnostics package:** with your permission, collect error logs into one file, without sensitive scan data.
 - [ ] **Installer tests in CI:** automatic install, upgrade and uninstall checks on Windows.
+
+## Website
+
+The LANORA website, an interactive 3D tour of what LANORA does, is at **[smyrna-pergamum.github.io/web-design-skills/skills/network-journey-webgl/example](https://smyrna-pergamum.github.io/web-design-skills/skills/network-journey-webgl/example/)**. Its source (SvelteKit and Three.js) is in [web-design-skills/skills/network-journey-webgl](https://github.com/smyrna-pergamum/web-design-skills/tree/main/skills/network-journey-webgl). The network shown on the site is sample data.
 
 ## Feedback and contributing
 
