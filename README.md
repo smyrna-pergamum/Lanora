@@ -114,7 +114,7 @@ Planned features. Plans can change; ideas and votes are welcome in [Issues](http
 
 ## Website
 
-The LANORA website, an interactive 3D tour of what LANORA does, is at **[smyrna-pergamum.github.io/lanora-website](https://smyrna-pergamum.github.io/lanora-website/)**. Its source (SvelteKit and Three.js) is in [smyrna-pergamum/lanora-website](https://github.com/smyrna-pergamum/lanora-website). The network shown on the site is sample data.
+The LANORA website, an interactive 3D tour of what LANORA does, is at **[smyrna-pergamum.github.io/web-design-skills/skills/network-journey-webgl/example](https://smyrna-pergamum.github.io/web-design-skills/skills/network-journey-webgl/example/)**. Its source (SvelteKit and Three.js) is in [web-design-skills/skills/network-journey-webgl](https://github.com/smyrna-pergamum/web-design-skills/tree/main/skills/network-journey-webgl). The network shown on the site is sample data.
 
 ## Feedback and contributing
 
